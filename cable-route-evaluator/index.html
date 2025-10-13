@@ -21,40 +21,23 @@
         </div>
       </div>
 
-      <!-- Control Panel -->
+      <!-- Routes Panel (Left) -->
       <div id="controlPanel" class="panel">
         <div class="panel-header">
           <h2>Routes</h2>
+          <!-- Drawing Widget (Top Left) -->
+          <div id="drawing-widget" class="map-widget-inline">
+            <button id="start-drawing" class="draw-btn draw-btn-primary" title="Start drawing a new cable route">
+              ➕
+            </button>
+            <button id="cancel-drawing" class="draw-btn draw-btn-secondary" disabled title="Cancel current drawing">
+              ✖
+            </button>
+          </div>
         </div>
         <div class="panel-content">
-          <!-- Drawing Controls -->
-          <div id="drawing-section" class="section">
-            <h3>New Route</h3>
-            <div class="drawing-controls">
-              <button id="start-drawing" class="draw-btn draw-btn-primary" title="Start drawing a new cable route">
-                Draw
-              </button>
-              <button id="cancel-drawing" class="draw-btn draw-btn-secondary" disabled title="Cancel current drawing">
-                Cancel
-              </button>
-            </div>
-            
-            <div id="drawing-status" style="
-              padding: 16px; 
-              background: #fafafa; 
-              border-radius: 6px; 
-              font-size: 0.875rem; 
-              color: #666666;
-              line-height: 1.6;
-              border: 1px solid #e5e5e5;
-            ">
-              Click 'Draw' to start creating a new cable route
-            </div>
-          </div>
-          
           <!-- Routes List -->
           <div id="routeList" class="section">
-            <h3>All Routes</h3>
             <div id="routes"></div>
             <p id="no-routes-message" style="
               margin-top: 16px; 
@@ -68,7 +51,7 @@
               line-height: 1.8;
             ">
               No routes yet<br>
-              <span style="font-size: 0.8125rem; color: #bbbbbb;">Click "Draw" to create one</span>
+              <span style="font-size: 0.8125rem; color: #bbbbbb;">Click ➕ to create one</span>
             </p>
           </div>
         </div>
@@ -76,6 +59,79 @@
       
       <!-- Map Container -->
       <div id="viewDiv">
+        <!-- Welcome Message -->
+        <div id="welcome-message" style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          padding: 32px 40px;
+          border-radius: 8px;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+          z-index: 9998;
+          max-width: 600px;
+          border: 1px solid #e5e5e5;
+        ">
+          <h2 style="margin: 0 0 20px 0; color: #000000; font-size: 1.5rem; font-weight: 600;">
+            Welcome to ProRail Cable Route Evaluator
+          </h2>
+          
+          <div style="margin-bottom: 24px; line-height: 1.6; color: #333333;">
+            <p style="margin: 0 0 16px 0; font-size: 0.9375rem;">
+              This tool helps you design and evaluate cable routes along railway infrastructure for compliance with EMC (Electromagnetic Compatibility) requirements.
+            </p>
+            
+            <h3 style="margin: 0 0 12px 0; font-size: 1rem; font-weight: 600; color: #000000;">
+              How to Use:
+            </h3>
+            
+            <div style="margin-bottom: 20px;">
+              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;">
+                📍 Drawing Routes:
+              </p>
+              <ul style="margin: 0 0 12px 0; padding-left: 24px; font-size: 0.875rem; color: #555555;">
+                <li>Click the <strong>➕ button</strong> in the top-left Routes panel</li>
+                <li>Click on the map to add waypoints along your route</li>
+                <li><strong>Double-click</strong> to finish the route</li>
+                <li>Hover over the ➕ button for quick tips</li>
+              </ul>
+              
+              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;">
+                ⚡ Infrastructure Types:
+              </p>
+              <ul style="margin: 0 0 12px 0; padding-left: 24px; font-size: 0.875rem; color: #555555;">
+                <li><strong>Cables:</strong> Underground or overhead cable routes</li>
+                <li><strong>OHL (Overhead Lines):</strong> Overhead power line routes</li>
+              </ul>
+              
+              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;">
+                📊 View Your Results:
+              </p>
+              <ul style="margin: 0; padding-left: 24px; font-size: 0.875rem; color: #555555;">
+                <li><strong>Left Panel (Routes):</strong> All your drawn routes with details</li>
+                <li><strong>Right Panel (Results):</strong> EMC evaluation results and compliance status</li>
+                <li><strong>Map Layers:</strong> Toggle railway infrastructure layers (top-right icon)</li>
+              </ul>
+            </div>
+          </div>
+          
+          <button id="close-welcome" style="
+            width: 100%;
+            padding: 12px 24px;
+            background: #000000;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          " onmouseover="this.style.background='#1a1a1a'" onmouseout="this.style.background='#000000'">
+            Get Started
+          </button>
+        </div>
+        
         <div id="map-loading" style="
           position: absolute;
           top: 50%;

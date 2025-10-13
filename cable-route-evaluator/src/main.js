@@ -13,8 +13,11 @@ import Expand from "@arcgis/core/widgets/Expand";
 import LayerList from "@arcgis/core/widgets/LayerList";
 import esriConfig from "@arcgis/core/config";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
-import * as projection from "@arcgis/core/geometry/projection";
+import * as projectOperator from "@arcgis/core/geometry/operators/projectOperator.js";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference";
+import Graphic from "@arcgis/core/Graphic";
+import Point from "@arcgis/core/geometry/Point";
+import Polyline from "@arcgis/core/geometry/Polyline";
 
 import { config } from "./config.js";
 import { 
@@ -41,16 +44,16 @@ import {
 import {
   calculateChainage,
   findNearestTrack,
-  createJointData,
-  addJoint,
-  removeJoint,
-  getJointsForRoute,
-  getMinimumJointToTrackDistance,
-  getJointComplianceSummary,
-  createJointGraphic,
-  clearJointsForRoute,
-  resnapJointsToRoute
-} from "./utils/jointManager.js";
+  createPointData,
+  addPoint,
+  removePoint,
+  getPointsForRoute,
+  getMinimumDistanceForType,
+  getComplianceSummaryForType,
+  createPointGraphic,
+  clearPointsForRoute,
+  resnapPointsToRoute
+} from "./utils/assetPointManager.js";
 import "./style.css";
 
 // Configure ArcGIS API Key
@@ -67,7 +70,7 @@ console.log('🚂 ProRail Base URL:', config.prorail.baseUrl);
  */
 function initializeMap() {
   // Load projection engine for coordinate transformations
-  projection.load().then(() => {
+  projectOperator.load().then(() => {
     console.log('✅ Projection engine loaded');
   }).catch(err => {
     console.warn('⚠️ Projection engine failed to load:', err);
@@ -84,6 +87,14 @@ function initializeMap() {
   const jointsLayer = new GraphicsLayer({
     id: "joints-earthing",
     title: "⚡ Joints & Earthing Points",
+    listMode: "show",
+    visible: true
+  });
+
+  // Create graphics layer for distance annotations
+  const distanceAnnotationsLayer = new GraphicsLayer({
+    id: "distance-annotations",
+    title: "📏 Distance Annotations",
     listMode: "show",
     visible: true
   });
@@ -276,7 +287,8 @@ function initializeMap() {
       otherTrackObjectsGroup, // Other track objects
       trackAssetDistancesGroup, // Track asset distances
       cableRoutesLayer, // User-drawn cable routes
-      jointsLayer // Joints and earthing points on top
+      jointsLayer, // Joints and earthing points
+      distanceAnnotationsLayer // Distance measurements on top
     ]
   });
 
@@ -336,13 +348,13 @@ function initializeMap() {
       drawingManager.setRouteCompliance(routeData.id, null);
     }
     
-    // Re-snap joints to the new route geometry
-    const joints = getJointsForRoute(routeData.id);
-    if (joints.length > 0) {
-      console.log(`🔄 Re-snapping ${joints.length} joint(s) to updated route...`);
+    // Re-snap asset points (joints/masts) to the new route geometry
+    const points = getPointsForRoute(routeData.id);
+    if (points.length > 0) {
+      console.log(`🔄 Re-snapping ${points.length} asset point(s) to updated route...`);
       
       try {
-        const updatedJoints = await resnapJointsToRoute(
+        const updatedPoints = await resnapPointsToRoute(
           routeData.id,
           routeData.graphic.geometry,
           drawingManager.railwayTracksLayer
@@ -351,22 +363,22 @@ function initializeMap() {
         // Update graphics on the map
         const jointsLayer = window.app.jointsLayer;
         if (jointsLayer) {
-          // Remove old joint graphics for this route
+          // Remove old point graphics for this route
           const oldGraphics = jointsLayer.graphics.filter(g => g.attributes?.routeId === routeData.id);
           jointsLayer.removeMany(oldGraphics.toArray());
           
-          // Add updated joint graphics
-          const newGraphics = updatedJoints.map(joint => {
-            const graphic = createJointGraphic(joint);
+          // Add updated point graphics
+          const newGraphics = updatedPoints.map(point => {
+            const graphic = createPointGraphic(point);
             graphic.attributes.routeId = routeData.id;
             return graphic;
           });
           jointsLayer.addMany(newGraphics);
           
-          console.log(`✅ Updated ${updatedJoints.length} joint graphic(s) on map`);
+          console.log(`✅ Updated ${updatedPoints.length} asset point graphic(s) on map`);
         }
       } catch (error) {
-        console.error('❌ Error re-snapping joints:', error);
+        console.error('❌ Error re-snapping asset points:', error);
       }
     }
     
@@ -503,11 +515,11 @@ function initializeMap() {
     try {
       // Get map center
       const centerPoint = view.center.clone();
-      console.log("📍 Testing joint markers near map center");
+      console.log("📍 Testing asset point markers near map center");
       console.log(`   Coordinates: ${centerPoint.longitude.toFixed(6)}, ${centerPoint.latitude.toFixed(6)}`);
 
       // Create test joint at center (chainage 0m)
-      const jointData1 = createJointData({
+      const pointData1 = createPointData({
         geometry: centerPoint.clone(),
         chainage: 0,
         type: "joint",
@@ -521,7 +533,7 @@ function initializeMap() {
       const midPoint = centerPoint.clone();
       midPoint.longitude += 0.005; // Move east
       
-      const jointData2 = createJointData({
+      const pointData2 = createPointData({
         geometry: midPoint,
         chainage: 500,
         type: "earthing",
@@ -531,45 +543,49 @@ function initializeMap() {
       });
       console.log("   ✅ Created earthing point");
 
-      // Create test joint 1000m east
+      // Create test mast 1000m east
       const endPoint = centerPoint.clone();
       endPoint.longitude += 0.01; // Move further east
       
-      const jointData3 = createJointData({
+      const pointData3 = createPointData({
         geometry: endPoint,
         chainage: 1000,
-        type: "joint",
+        type: "mast",
         routeId: "test-route",
         distanceToTrack: 52.0, // Simulated distance (compliant)
         nearestTrack: null
       });
-      console.log("   ✅ Created joint 3");
+      console.log("   ✅ Created mast");
 
-      // Add joints to storage
-      addJoint("test-route", jointData1);
-      addJoint("test-route", jointData2);
-      addJoint("test-route", jointData3);
-      console.log("   ✅ Added joints to storage");
+      // Add points to storage
+      addPoint("test-route", pointData1);
+      addPoint("test-route", pointData2);
+      addPoint("test-route", pointData3);
+      console.log("   ✅ Added points to storage");
 
       // Create graphics and add to layer
-      const graphic1 = createJointGraphic(jointData1);
-      const graphic2 = createJointGraphic(jointData2);
-      const graphic3 = createJointGraphic(jointData3);
+      const graphic1 = createPointGraphic(pointData1);
+      const graphic2 = createPointGraphic(pointData2);
+      const graphic3 = createPointGraphic(pointData3);
       console.log("   ✅ Created graphics");
 
       jointsLayer.addMany([graphic1, graphic2, graphic3]);
       console.log("   ✅ Added graphics to jointsLayer");
       console.log(`   📊 JointsLayer now has ${jointsLayer.graphics.length} graphics`);
 
-      console.log("✅ Test joint markers added to map");
+      console.log("✅ Test asset point markers added to map");
       console.log("👁️ You should see:");
-      console.log("   🟢 Green joint marker at center (0m, compliant)");
-      console.log("   🔴 Red earthing marker to the east (500m, violation)");
-      console.log("   🟢 Green joint marker further east (1000m, compliant)");
+      console.log("   🟢 Green joint marker (🔗) at center (0m, compliant)");
+      console.log("   🔴 Red earthing marker (⚡) to the east (500m, violation)");
+      console.log("   🟢 Green mast marker (🗼) further east (1000m, compliant)");
 
-      // Get summary
-      const summary = getJointComplianceSummary("test-route");
-      console.log("📊 Compliance Summary:", summary);
+      // Get summary for joints
+      const jointSummary = getComplianceSummaryForType("test-route", "joint");
+      console.log("📊 Joint Compliance Summary:", jointSummary);
+      
+      // Get summary for masts
+      const mastSummary = getComplianceSummaryForType("test-route", "mast");
+      console.log("📊 Mast Compliance Summary:", mastSummary);
 
       // Verify layer is visible
       console.log(`   🔍 jointsLayer visible: ${jointsLayer.visible}`);
@@ -661,6 +677,7 @@ function initializeMap() {
     drawingManager,
     cableRoutesLayer,
     jointsLayer,
+    distanceAnnotationsLayer,
     railwayTracksLayer,
     trackSectionsLayer,
     stationsLayer
@@ -736,39 +753,54 @@ function addRouteToList(routeData) {
   routeItem.className = 'route-item';
   routeItem.id = `route-${routeId}`;
   routeItem.innerHTML = `
-    <div class="route-header" style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px; cursor: pointer;" 
-         onclick="selectRoute('${routeId}')">
+    <div class="route-header" style="display: flex; align-items: center; gap: 14px; margin-bottom: 0px; cursor: pointer; padding-bottom: 16px;" 
+         onclick="toggleRouteCollapse('${routeId}')">
       <div class="trace-indicator" 
            id="trace-${routeId}"
            style="width: 32px; height: 32px; border-radius: 6px; background: ${currentColor}; border: 1px solid #e5e5e5; flex-shrink: 0;"
            title="Route color">
       </div>
-      <div class="route-name" style="font-weight: 500; flex: 1; font-size: 1rem; color: #000000;">${routeName}</div>
+      <div class="route-name-wrapper" style="flex: 1; display: flex; align-items: center; gap: 8px;">
+        <input type="text" 
+               id="name-${routeId}" 
+               class="route-name-input"
+               value="${routeName}"
+               onclick="event.stopPropagation();"
+               onblur="updateRouteName('${routeId}', this.value)"
+               onkeypress="if(event.key === 'Enter') { this.blur(); }"
+               style="font-weight: 500; flex: 1; font-size: 1rem; color: #000000; border: 1px solid transparent; padding: 6px 10px; border-radius: 4px; background: transparent; transition: all 0.15s;"
+               onfocus="this.style.borderColor='#000000'; this.style.background='white';"
+               onblur="this.style.borderColor='transparent'; this.style.background='transparent'; updateRouteName('${routeId}', this.value);"
+               title="Click to edit route name" />
+        <span style="font-size: 0.75rem; color: #999999; flex-shrink: 0;">✏️</span>
+      </div>
+      <span id="collapse-icon-${routeId}" style="font-size: 0.875rem; color: #999999; transition: transform 0.2s;" title="Collapse/Expand">▼</span>
     </div>
     
-    <div class="route-details" style="font-size: 0.8125rem; color: #666666; margin-bottom: 16px;">
-      <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; line-height: 1.6;">
-        <span style="color: #999999;">Length:</span>
-        <span id="route-length-${routeId}" style="color: #000000; font-weight: 500;">${routeData.length ? `${(routeData.length/1000).toFixed(2)} km` : 'Unknown'}</span>
+    <div id="route-collapsible-${routeId}" class="route-collapsible-content">
+      <div class="route-details" style="font-size: 0.8125rem; color: #666666; margin-bottom: 16px;">
+        <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; line-height: 1.6;">
+          <span style="color: #999999;">Length:</span>
+          <span id="route-length-${routeId}" style="color: #000000; font-weight: 500;">${routeData.length ? `${(routeData.length/1000).toFixed(2)} km` : 'Unknown'}</span>
+          
+          <span style="color: #999999;">Points:</span>
+          <span id="route-points-${routeId}" style="color: #000000; font-weight: 500;">${routeData.points || 0}</span>
+          
+          <span style="color: #999999;">Created:</span>
+          <span style="color: #666666; font-size: 0.75rem;">${new Date(routeData.created).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</span>
+        </div>
         
-        <span style="color: #999999;">Points:</span>
-        <span id="route-points-${routeId}" style="color: #000000; font-weight: 500;">${routeData.points || 0}</span>
-        
-        <span style="color: #999999;">Created:</span>
-        <span style="color: #666666; font-size: 0.75rem;">${new Date(routeData.created).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</span>
+        <div class="route-description" style="margin-top: 16px;">
+          <label style="display: block; color: #999999; margin-bottom: 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;">Description</label>
+          <textarea id="desc-${routeId}" 
+                    class="route-desc-input"
+                    placeholder="Add a description..."
+                    style="width: 100%; min-height: 70px; padding: 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 0.8125rem; resize: vertical; font-family: inherit; background: white; color: #000000; transition: border-color 0.15s; line-height: 1.5;"
+                    onfocus="this.style.borderColor='#000000';"
+                    onblur="this.style.borderColor='#e5e5e5';"
+                    onchange="updateRouteDescription('${routeId}', this.value)">${description}</textarea>
+        </div>
       </div>
-      
-      <div class="route-description" style="margin-top: 16px;">
-        <label style="display: block; color: #999999; margin-bottom: 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;">Description</label>
-        <textarea id="desc-${routeId}" 
-                  class="route-desc-input"
-                  placeholder="Add a description..."
-                  style="width: 100%; min-height: 70px; padding: 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 0.8125rem; resize: vertical; font-family: inherit; background: white; color: #000000; transition: border-color 0.15s; line-height: 1.5;"
-                  onfocus="this.style.borderColor='#000000';"
-                  onblur="this.style.borderColor='#e5e5e5';"
-                  onchange="updateRouteDescription('${routeId}', this.value)">${description}</textarea>
-      </div>
-    </div>
     
     <div class="route-metadata" style="margin-bottom: 16px;" onclick="event.stopPropagation();">
       <div style="color: #999999; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; font-weight: 500;">EMC Inputs</div>
@@ -847,11 +879,17 @@ function addRouteToList(routeData) {
     <div id="route-compliance-${routeId}" class="route-compliance-panel" style="padding: 16px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; margin-bottom: 16px;"></div>
 
     <div class="route-main-actions" style="display: flex; gap: 8px; margin-bottom: 10px;">
+      <button onclick="evaluateRouteCompliance('${routeId}'); event.stopPropagation();" 
+              class="route-action-btn" 
+              style="flex: 1; background: #000000; color: white;" 
+              title="Run EMC evaluation">
+        Evaluate
+      </button>
       <button onclick="toggleRouteEditMenu('${routeId}'); event.stopPropagation();" 
               class="route-action-btn" 
               style="flex: 1;" 
               title="Show edit options">
-              Edit
+        Edit
       </button>
       <button onclick="changeRouteColor('${routeId}'); event.stopPropagation();" 
               class="route-action-btn" 
@@ -881,6 +919,7 @@ function addRouteToList(routeData) {
           ⚡ Mark Joints/Earthing
         </button>
       </div>
+    </div>
     </div>
   `;
   
@@ -1531,6 +1570,197 @@ function resolveTechnicalRoomsLayer(map) {
   return null;
 }
 
+/**
+ * Add distance annotations to the map showing measurements to railway infrastructure
+ */
+async function addDistanceAnnotations(routeId, evaluationResult) {
+  const { distanceAnnotationsLayer, drawingManager, map } = window.app || {};
+  if (!distanceAnnotationsLayer || !drawingManager) {
+    return;
+  }
+
+  // Clear existing annotations for this route
+  const existingAnnotations = distanceAnnotationsLayer.graphics.filter(
+    g => g.attributes?.routeId === routeId
+  );
+  distanceAnnotationsLayer.removeMany(existingAnnotations.toArray());
+
+  const route = drawingManager.getRoute(routeId);
+  if (!route || !route.geometry) {
+    return;
+  }
+
+  const routeGeometry = route.geometry;
+  
+  // Find the railway tracks layer
+  const prorailGroup = map?.layers?.find(l => 
+    l.title?.includes("ProRail") || l.title?.includes("Railway")
+  );
+  
+  const railwayTracksLayer = prorailGroup?.layers?.find(l => l.customId === 'prorail-tracks');
+
+  if (!railwayTracksLayer) {
+    console.warn("⚠️ Railway tracks layer not found for distance annotations");
+    return;
+  }
+
+  // Sample points along the route (every ~200m or at least 5 points)
+  const routeLength = geometryEngine.geodesicLength(routeGeometry, "meters");
+  const numSamples = Math.max(5, Math.min(20, Math.floor(routeLength / 200)));
+  
+  // Extract all vertices from the route geometry
+  const allPoints = [];
+  if (routeGeometry && routeGeometry.paths) {
+    for (const path of routeGeometry.paths) {
+      for (const coord of path) {
+        allPoints.push(new Point({
+          x: coord[0],
+          y: coord[1],
+          spatialReference: routeGeometry.spatialReference
+        }));
+      }
+    }
+  }
+  
+  // If we don't have enough points, just use what we have
+  if (allPoints.length === 0) {
+    console.warn("⚠️ No points found in route geometry");
+    return;
+  }
+
+  console.log(`📏 Creating distance annotations for route ${routeId} (${allPoints.length} points, ${numSamples} samples)...`);
+  
+  const annotations = [];
+  
+  // Sample points evenly from the collected points
+  const actualSamples = Math.min(numSamples, allPoints.length - 1);
+  
+  // Process annotations in batches to avoid blocking
+  for (let i = 0; i <= actualSamples; i++) {
+    try {
+      const fraction = actualSamples > 0 ? i / actualSamples : 0;
+      const pointIndex = Math.floor(fraction * (allPoints.length - 1));
+      const pointOnRoute = allPoints[pointIndex];
+      
+      if (!pointOnRoute) continue;
+
+      // Query nearby tracks (within 10km to match other spatial queries) - use geodesicBuffer for proper distance in meters
+      const searchBuffer = geometryEngine.geodesicBuffer(pointOnRoute, 10000, "meters");
+      
+      const query = railwayTracksLayer.createQuery();
+      query.geometry = searchBuffer;
+      query.spatialRelationship = "intersects";
+      query.outFields = ["*"];
+      query.returnGeometry = true;
+      
+      const trackResults = await railwayTracksLayer.queryFeatures(query);
+      
+      if (trackResults.features.length === 0) {
+        console.log(`   ⚠️ Point ${i}: No tracks found within 10km`);
+        continue;
+      }
+
+      // Find nearest track and calculate actual distance IN METERS using geodesic distance
+      let minDistance = Infinity;
+      let nearestTrackPoint = null;
+      let nearestTrackGeometry = null;
+      
+      trackResults.features.forEach(trackFeature => {
+        // Find the nearest coordinate on the track
+        const nearestCoord = geometryEngine.nearestCoordinate(trackFeature.geometry, pointOnRoute);
+        
+        if (nearestCoord && nearestCoord.coordinate) {
+          // Create a line between the two points to measure geodesic distance
+          const distanceLine = new Polyline({
+            paths: [[
+              [pointOnRoute.x, pointOnRoute.y],
+              [nearestCoord.coordinate.x, nearestCoord.coordinate.y]
+            ]],
+            spatialReference: pointOnRoute.spatialReference
+          });
+          
+          // Calculate geodesic length in meters
+          const distance = geometryEngine.geodesicLength(distanceLine, "meters");
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestTrackGeometry = trackFeature.geometry;
+            nearestTrackPoint = nearestCoord.coordinate;
+          }
+        }
+      });
+      
+      if (!nearestTrackPoint || minDistance === Infinity) {
+        console.log(`   ⚠️ Point ${i}: Could not determine nearest track point`);
+        continue;
+      }
+
+      // Create distance line from route point to nearest track point
+      const distanceLine = new Polyline({
+        paths: [[
+          [pointOnRoute.x, pointOnRoute.y],
+          [nearestTrackPoint.x, nearestTrackPoint.y]
+        ]],
+        spatialReference: pointOnRoute.spatialReference
+      });
+
+      // Create line graphic
+      const lineGraphic = new Graphic({
+        geometry: distanceLine,
+        symbol: {
+          type: "simple-line",
+          color: [100, 100, 100, 0.6],
+          width: 1.5,
+          style: "short-dash"
+        },
+        attributes: {
+          routeId: routeId,
+          distance: minDistance
+        }
+      });
+
+      // Create text label at midpoint
+      const midpoint = new Point({
+        x: (pointOnRoute.x + nearestTrackPoint.x) / 2,
+        y: (pointOnRoute.y + nearestTrackPoint.y) / 2,
+        spatialReference: pointOnRoute.spatialReference
+      });
+      
+      const textGraphic = new Graphic({
+        geometry: midpoint,
+        symbol: {
+          type: "text",
+          color: [50, 50, 50, 1],
+          text: `${minDistance.toFixed(1)}m`,
+          font: {
+            size: 10,
+            family: "Arial",
+            weight: "bold"
+          },
+          haloColor: [255, 255, 255, 0.9],
+          haloSize: 2
+        },
+        attributes: {
+          routeId: routeId,
+          distance: minDistance
+        }
+      });
+
+      annotations.push(lineGraphic, textGraphic);
+      
+    } catch (error) {
+      console.warn(`⚠️ Failed to create annotation at point ${i}:`, error);
+    }
+  }
+
+  if (annotations.length > 0) {
+    distanceAnnotationsLayer.addMany(annotations);
+    console.log(`✅ Added ${annotations.length / 2} distance annotations for route ${routeId}`);
+  } else {
+    console.warn(`⚠️ No distance annotations created for route ${routeId}`);
+  }
+}
+
 async function evaluateRouteCompliance(routeId) {
   const { drawingManager, map } = window.app || {};
   if (!drawingManager) {
@@ -1601,6 +1831,11 @@ async function evaluateRouteCompliance(routeId) {
     // Update UI components in order
     updateRouteComplianceUI(routeId);
     
+    // Add distance annotations to the map (async but don't wait for it)
+    addDistanceAnnotations(routeId, result).catch(err => {
+      console.warn('⚠️ Failed to add distance annotations:', err);
+    });
+    
     // Debounce the final render to prevent multiple quick re-renders
     clearTimeout(window._renderDebounceTimer);
     window._renderDebounceTimer = setTimeout(() => {
@@ -1664,7 +1899,6 @@ function setupUI(drawingManager) {
       drawingManager.startDrawing();
       startBtn.disabled = true;
       cancelBtn.disabled = false;
-      updateDrawingStatus('Click on map to add points, double-click to finish');
     });
   }
   
@@ -1674,7 +1908,21 @@ function setupUI(drawingManager) {
       drawingManager.cancelDrawing();
       startBtn.disabled = false;
       cancelBtn.disabled = true;
-      updateDrawingStatus('ℹ️ Click \'Draw New Route\' to start');
+    });
+  }
+  
+  // Welcome message close button
+  const closeWelcomeBtn = document.getElementById('close-welcome');
+  const welcomeMessage = document.getElementById('welcome-message');
+  
+  if (closeWelcomeBtn && welcomeMessage) {
+    closeWelcomeBtn.addEventListener('click', () => {
+      welcomeMessage.style.opacity = '0';
+      welcomeMessage.style.transform = 'translate(-50%, -50%) scale(0.95)';
+      welcomeMessage.style.transition = 'all 0.3s ease';
+      setTimeout(() => {
+        welcomeMessage.style.display = 'none';
+      }, 300);
     });
   }
   
@@ -1688,6 +1936,11 @@ window.selectRoute = function(routeId) {
 };
 
 window.editRoute = function(routeId) {
+  // Deactivate joint/mast marking mode if active
+  if (jointMarkingState.isActive) {
+    deactivateJointMarking();
+  }
+  
   const { drawingManager } = window.app;
   drawingManager.startEditing(routeId);
 };
@@ -1714,19 +1967,26 @@ window.cancelRouteEdits = function(routeId) {
 
 window.deleteRoute = function(routeId) {
   if (confirm('Are you sure you want to delete this route?')) {
-    const { drawingManager } = window.app;
+    const { drawingManager, jointsLayer, distanceAnnotationsLayer } = window.app;
     drawingManager.deleteRoute(routeId);
     
-    // Clear joints for this route
-    clearJointsForRoute(routeId);
+    // Clear asset points (joints/masts) for this route
+    clearPointsForRoute(routeId);
     
-    // Remove joint graphics from map
-    const { jointsLayer } = window.app;
+    // Remove point graphics from map
     if (jointsLayer) {
       const graphicsToRemove = jointsLayer.graphics.filter(g => 
         g.attributes && g.attributes.routeId === routeId
       );
       jointsLayer.removeMany(graphicsToRemove.toArray());
+    }
+    
+    // Remove distance annotations for this route
+    if (distanceAnnotationsLayer) {
+      const annotationsToRemove = distanceAnnotationsLayer.graphics.filter(g =>
+        g.attributes && g.attributes.routeId === routeId
+      );
+      distanceAnnotationsLayer.removeMany(annotationsToRemove.toArray());
     }
   }
 };
@@ -1848,45 +2108,65 @@ window.toggleJointMarking = async function(routeId) {
         console.warn('   ⚠️ Tracks layer not available');
       }
       
-      // Create joint data
-      const jointData = createJointData({
+      // Determine point type based on infrastructure type
+      const infrastructureType = route.metadata?.infrastructureType?.toLowerCase() || 'cable';
+      const pointType = infrastructureType === 'overhead' ? 'mast' : jointMarkingState.selectedType;
+      
+      console.log(`   🏗️ Infrastructure type: ${infrastructureType} → Point type: ${pointType}`);
+      
+      // Create point data
+      const pointData = createPointData({
         geometry: chainageResult.snappedPoint,
         chainage: chainageResult.chainage,
-        type: jointMarkingState.selectedType,
+        type: pointType,
         routeId: routeId,
         distanceToTrack: trackDistance,
         nearestTrack: nearestTrack
       });
       
       // Add to storage
-      addJoint(routeId, jointData);
+      addPoint(routeId, pointData);
       
       // Create graphic
-      const graphic = createJointGraphic(jointData);
+      const graphic = createPointGraphic(pointData);
       graphic.attributes.routeId = routeId; // Add route ID for filtering
       
       // Add to map
       jointsLayer.add(graphic);
       
-      const complianceStatus = jointData.compliant ? '✅ Compliant' : '❌ Violation';
-      console.log(`✅ ${jointData.type} added at ${jointData.chainageMeters.toFixed(1)}m - ${complianceStatus}`);
+      const complianceStatus = pointData.compliant ? '✅ Compliant' : '❌ Violation';
+      console.log(`✅ ${pointData.type} added at ${pointData.chainageMeters.toFixed(1)}m - ${complianceStatus}`);
       
-      // Update route metadata with minimum joint distance
-      const minDistance = getMinimumJointToTrackDistance(routeId);
-      if (minDistance !== null) {
-        route.metadata.minJointDistanceMeters = minDistance;
-        console.log(`   📊 Updated route minimum joint distance: ${minDistance.toFixed(2)}m`);
-        
-        // Trigger re-evaluation after updating joint distance
-        console.log(`   🔄 Triggering re-evaluation after joint placement...`);
-        setTimeout(() => {
-          evaluateRouteCompliance(routeId);
-        }, 100);
+      // Update route metadata with minimum distance for the appropriate type
+      if (pointType === 'mast') {
+        const minDistance = getMinimumDistanceForType(routeId, 'mast');
+        if (minDistance !== null) {
+          route.metadata.minMastDistanceMeters = minDistance;
+          console.log(`   📊 Updated route minimum mast distance: ${minDistance.toFixed(2)}m`);
+          
+          // Trigger re-evaluation after updating mast distance
+          console.log(`   🔄 Triggering re-evaluation after mast placement...`);
+          setTimeout(() => {
+            evaluateRouteCompliance(routeId);
+          }, 100);
+        }
+      } else {
+        const minDistance = getMinimumDistanceForType(routeId, 'joint');
+        if (minDistance !== null) {
+          route.metadata.minJointDistanceMeters = minDistance;
+          console.log(`   📊 Updated route minimum joint distance: ${minDistance.toFixed(2)}m`);
+          
+          // Trigger re-evaluation after updating joint distance
+          console.log(`   🔄 Triggering re-evaluation after joint placement...`);
+          setTimeout(() => {
+            evaluateRouteCompliance(routeId);
+          }, 100);
+        }
       }
       
       // Show summary
-      const summary = getJointComplianceSummary(routeId);
-      console.log(`📊 Route ${routeId}: ${summary.total} joint(s), ${summary.compliant} compliant, ${summary.violations} violations`);
+      const summary = getComplianceSummaryForType(routeId, pointType);
+      console.log(`📊 Route ${routeId}: ${summary.total} ${pointType}(s), ${summary.compliant} compliant, ${summary.violations} violations`);
       
     } catch (error) {
       console.error('❌ Error placing joint:', error);
@@ -1924,6 +2204,18 @@ function deactivateJointMarking() {
   }
 }
 
+window.toggleRouteCollapse = function(routeId) {
+  const content = document.getElementById(`route-collapsible-${routeId}`);
+  const icon = document.getElementById(`collapse-icon-${routeId}`);
+  
+  if (content && icon) {
+    const isCollapsed = content.style.display === 'none';
+    content.style.display = isCollapsed ? 'block' : 'none';
+    icon.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
+    icon.textContent = isCollapsed ? '▼' : '▶';
+  }
+};
+
 window.toggleRouteEditMenu = function(routeId) {
   const menu = document.getElementById(`edit-menu-${routeId}`);
   if (menu) {
@@ -1941,6 +2233,38 @@ window.updateRouteDescription = function(routeId, description) {
   if (route) {
     route.description = description;
     console.log(`📝 Updated description for ${routeId}:`, description);
+  }
+};
+
+window.updateRouteName = function(routeId, newName) {
+  const { drawingManager } = window.app;
+  const route = drawingManager.getRoute(routeId);
+  
+  if (!route) {
+    console.error('Route not found:', routeId);
+    return;
+  }
+  
+  // Validate name
+  const trimmedName = newName.trim();
+  if (!trimmedName) {
+    // Revert to original name if empty
+    const nameInput = document.getElementById(`name-${routeId}`);
+    if (nameInput) {
+      nameInput.value = route.name;
+    }
+    console.warn('⚠️ Route name cannot be empty, reverted to:', route.name);
+    return;
+  }
+  
+  // Update route name
+  route.name = trimmedName;
+  console.log(`✏️ Updated route name for ${routeId}: "${trimmedName}"`);
+  
+  // Update the graphic's attributes if it exists
+  const graphic = route.graphic;
+  if (graphic && graphic.attributes) {
+    graphic.attributes.name = trimmedName;
   }
 };
 
@@ -2190,13 +2514,13 @@ window.changeRouteColor = function(routeId) {
 // Initialize the application
 console.log('🚀 Initializing application...');
 
-const { map, view, drawingManager, cableRoutesLayer, jointsLayer } = initializeMap();
+const { map, view, drawingManager, cableRoutesLayer, jointsLayer, distanceAnnotationsLayer } = initializeMap();
 setupUI(drawingManager);
 
 console.log('✅ Application ready');
 
 // Export for debugging
-window.app = { map, view, drawingManager, cableRoutesLayer, jointsLayer, config };
+window.app = { map, view, drawingManager, cableRoutesLayer, jointsLayer, distanceAnnotationsLayer, config };
 window.updateRouteMetadataField = updateRouteMetadataField;
 window.evaluateRouteCompliance = evaluateRouteCompliance;
 window.toggleEvaluationDetails = toggleEvaluationDetails;

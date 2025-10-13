@@ -14,6 +14,7 @@ const DEFAULT_METADATA = {
   hasDoubleGuying: null,
   hasBoredCrossing: null,
   minJointDistanceMeters: null,
+  minMastDistanceMeters: null,
   notes: ""
 };
 
@@ -21,7 +22,7 @@ const RULE_DEFINITIONS = [
   {
     id: "CROSSING_ANGLE",
     title: "Crossing angle between 80° and 100°",
-    clause: "RLN00398 §4.1 / §5.1",
+    clause: "§ 5.1 (1), § 5.2 (1)", // Corrected
     applicableFor: ["cable", "overhead"], // Both infrastructure types
     applies: (ctx) => ctx.crossing.crossesTrack,
     evaluate: (ctx) => {
@@ -54,7 +55,7 @@ const RULE_DEFINITIONS = [
   {
     id: "FAULT_CLEARING_TIME",
     title: "Fault must clear within 100 ms",
-    clause: "RLN00398 §4.4 / §5.2",
+    clause: "§ 5.1 (4), § 5.2 (2)", // Corrected
     applicableFor: ["cable", "overhead"], // Both infrastructure types
     applies: () => true,
     evaluate: (ctx) => {
@@ -83,7 +84,7 @@ const RULE_DEFINITIONS = [
   {
     id: "OHL_DOUBLE_GUYING",
     title: "Crossing span is double-guyed",
-    clause: "RLN00398 §4.3",
+    clause: "§ 5.1 (3)", // Corrected
     applicableFor: ["overhead"], // Only overhead lines
     applies: (ctx) => ctx.routeType === "overhead" && ctx.crossing.crossesTrack,
     evaluate: (ctx) => {
@@ -107,11 +108,13 @@ const RULE_DEFINITIONS = [
   {
     id: "OHL_NON_CROSSING_DISTANCE",
     title: "Overhead line distance to track",
-    clause: "RLN00398 §4.5",
+    clause: "§ 5.1 (5)", // Corrected
     applicableFor: ["overhead"], // Only overhead lines
     applies: (ctx) => ctx.routeType === "overhead" && !ctx.crossing.crossesTrack,
     evaluate: (ctx) => {
-      const threshold = ctx.thresholds.overheadDistance;
+      const threshold = ctx.metadata.electrifiedSystem === "25kv_50hz"
+          ? config.compliance.nonCrossingDistances.electrified25kV
+          : config.compliance.nonCrossingDistances.default;
       const distance = ctx.distances.track;
 
       if (distance === null) {
@@ -138,11 +141,13 @@ const RULE_DEFINITIONS = [
   {
     id: "CABLE_NON_CROSSING_HV",
     title: "≥35 kV cable distance to track",
-    clause: "RLN00398 §5.3",
+    clause: "§ 5.2 (3)", // Corrected
     applicableFor: ["cable"], // Only cables
     applies: (ctx) => ctx.routeType === "cable" && !ctx.crossing.crossesTrack && ctx.metadata.voltageKv >= 35,
     evaluate: (ctx) => {
-      const threshold = ctx.thresholds.highVoltageCableDistance;
+      const threshold = ctx.metadata.electrifiedSystem === "25kv_50hz"
+          ? config.compliance.nonCrossingDistances.electrified25kV
+          : config.compliance.nonCrossingDistances.default;
       const distance = ctx.distances.track;
 
       if (distance === null) {
@@ -169,11 +174,11 @@ const RULE_DEFINITIONS = [
   {
     id: "CABLE_NON_CROSSING_LV",
     title: "<35 kV cable distance to track",
-    clause: "RLN00398 §5.4 / §5.5",
+    clause: "§ 5.2 (4), § 5.2 (5)", // Corrected
     applicableFor: ["cable"], // Only cables
     applies: (ctx) => ctx.routeType === "cable" && !ctx.crossing.crossesTrack && ctx.metadata.voltageKv < 35,
     evaluate: (ctx) => {
-      const threshold = ctx.thresholds.lowVoltageCableDistance;
+      const threshold = config.compliance.nonCrossingDistances.lowVoltageCable;
       const distance = ctx.distances.track;
 
       if (distance === null) {
@@ -200,7 +205,7 @@ const RULE_DEFINITIONS = [
   {
     id: "CABLE_BORE_CROSSING",
     title: "Bored insulated conduit for underpasses",
-    clause: "RLN00398 §5.7",
+    clause: "§ 5.2 (7)", // Corrected
     applicableFor: ["cable"], // Only cables
     applies: (ctx) => ctx.routeType === "cable" && ctx.crossing.crossesTrack,
     evaluate: (ctx) => {
@@ -224,7 +229,7 @@ const RULE_DEFINITIONS = [
   {
     id: "TECHNICAL_ROOM_CLEARANCE",
     title: "No HV infrastructure within 20 m of technical rooms",
-    clause: "RLN00398 §4.8 / §5.6",
+    clause: "§ 5.1 (8), § 5.2 (6)", // Corrected
     applicableFor: ["cable", "overhead"], // Both infrastructure types
     applies: () => true,
     evaluate: (ctx) => {
@@ -255,7 +260,7 @@ const RULE_DEFINITIONS = [
   {
     id: "JOINT_DISTANCE",
     title: "Joints and earthing ≥31 m from track",
-    clause: "RLN00398 §5.8",
+    clause: "§ 5.2 (8)", // Corrected
     applicableFor: ["cable"], // Only cables (overhead lines don't have joints)
     applies: () => true,
     evaluate: (ctx) => {
@@ -294,6 +299,53 @@ const RULE_DEFINITIONS = [
           : `Ensure joints ≥${threshold} m from track (current ${Number(userMarkedJointDistance).toFixed(1)} m)`,
         metrics: {
           minimumDistanceMeters: Number(userMarkedJointDistance),
+          requiredDistanceMeters: threshold
+        }
+      };
+    }
+  },
+  {
+    id: "OHL_MAST_DISTANCE",
+    title: "Masts ≥31 m from track",
+    clause: "§ 5.1 (7)",
+    applicableFor: ["overhead"], // Only for overhead lines
+    applies: () => true,
+    evaluate: (ctx) => {
+      const threshold = config.compliance.mastDistance.min;
+      const routeToTrackDistance = ctx.distances.track;
+      const userMarkedMastDistance = ctx.metadata.minMastDistanceMeters;
+
+      // Smart rule: If entire route is >31m from tracks, automatic pass
+      if (routeToTrackDistance !== null && routeToTrackDistance >= threshold) {
+        return {
+          status: "pass",
+          message: `Entire route is ${routeToTrackDistance.toFixed(1)} m from tracks - masts can be placed anywhere`,
+          metrics: {
+            minimumDistanceMeters: routeToTrackDistance,
+            requiredDistanceMeters: threshold,
+            autoEvaluated: true
+          }
+        };
+      }
+
+      // Route comes within 31m of tracks - need manual mast distance input
+      if (userMarkedMastDistance === null || userMarkedMastDistance === undefined || Number.isNaN(userMarkedMastDistance)) {
+        return {
+          status: "not_evaluated",
+          message: routeToTrackDistance !== null
+            ? `Route comes within ${routeToTrackDistance.toFixed(1)} m of tracks - document minimum mast distance`
+            : "Document minimum distance between masts and the track"
+        };
+      }
+
+      const passes = Number(userMarkedMastDistance) >= threshold;
+      return {
+        status: passes ? "pass" : "fail",
+        message: passes
+          ? `Masts located ${Number(userMarkedMastDistance).toFixed(1)} m from track`
+          : `Ensure masts ≥${threshold} m from track (current ${Number(userMarkedMastDistance).toFixed(1)} m)`,
+        metrics: {
+          minimumDistanceMeters: Number(userMarkedMastDistance),
           requiredDistanceMeters: threshold
         }
       };
@@ -534,7 +586,8 @@ async function fetchTrackGeometries(routeGeometry, layer) {
   }
 
   try {
-    const buffer = geometryEngine.geodesicBuffer(routeGeometry, 1200, "meters");
+    const bufferDistance = config.spatialQuery?.bufferDistances?.tracks ?? 10000;
+    const buffer = geometryEngine.geodesicBuffer(routeGeometry, bufferDistance, "meters");
     const query = layer.createQuery();
     query.geometry = buffer || routeGeometry.extent;
     query.spatialRelationship = "intersects";
@@ -581,7 +634,8 @@ async function computeTechnicalRoomDistance(routeGeometry, routeRd, layer) {
   }
 
   try {
-    const buffer = geometryEngine.geodesicBuffer(routeGeometry, 2000, "meters");
+    const bufferDistance = config.spatialQuery?.bufferDistances?.technicalRooms ?? 10000;
+    const buffer = geometryEngine.geodesicBuffer(routeGeometry, bufferDistance, "meters");
     const query = layer.createQuery();
     query.geometry = buffer || routeGeometry.extent;
     query.spatialRelationship = "intersects";
@@ -613,6 +667,7 @@ export async function evaluateRoute(route, options = {}) {
   metadata.voltageKv = toNumber(metadata.voltageKv) ?? DEFAULT_METADATA.voltageKv;
   metadata.faultClearingTimeMs = toNumber(metadata.faultClearingTimeMs);
   metadata.minJointDistanceMeters = toNumber(metadata.minJointDistanceMeters);
+  metadata.minMastDistanceMeters = toNumber(metadata.minMastDistanceMeters);
 
   await ensureProjectionLoaded();
 
@@ -631,15 +686,6 @@ export async function evaluateRoute(route, options = {}) {
   );
 
   const routeType = (metadata.infrastructureType || "cable").toLowerCase();
-  const thresholds = {
-    overheadDistance: metadata.electrifiedSystem === "25kv_50hz"
-      ? config.compliance.distanceHighVoltage.electrified25kV
-      : config.compliance.distanceHighVoltage.default,
-    highVoltageCableDistance: metadata.electrifiedSystem === "25kv_50hz"
-      ? config.compliance.distanceHighVoltage.electrified25kV
-      : config.compliance.distanceHighVoltage.default,
-    lowVoltageCableDistance: config.compliance.distanceLowVoltage.min
-  };
 
   const evaluationContext = {
     route,
@@ -652,7 +698,6 @@ export async function evaluateRoute(route, options = {}) {
       track: minTrackDistance,
       technicalRoom: minTechnicalRoomDistance
     },
-    thresholds,
     layers: options.layers || {}
   };
 

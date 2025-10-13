@@ -18,7 +18,8 @@ import {
   createRouteSymbol,
   createWaypointSymbol,
   generateRouteId,
-  createRoutePopupContent
+  createRoutePopupContent,
+  getNextRouteColor
 } from './drawingUtils.js';
 
 const DEFAULT_ROUTE_METADATA = {
@@ -488,6 +489,10 @@ export class EnhancedDrawingManager {
     
     console.log(`📏 Route length: ${length}m (${(length/1000).toFixed(2)}km)`);
     
+    // Get next color from palette
+    const routeColor = getNextRouteColor();
+    console.log(`🎨 Assigned color: ${routeColor.name} (${routeColor.hex})`);
+    
     const routeData = {
       id: routeId,
       name: `Route ${this.routes.size + 1}`,
@@ -497,17 +502,24 @@ export class EnhancedDrawingManager {
       points: this.currentPoints.length,
       description: '',
       compliant: undefined, // Will be evaluated later
-      color: '#ff0000', // Default red color
-      lineWidth: 4, // Default width
+      color: routeColor.hex, // Use palette color
+      lineWidth: 5, // Modern width (reduced from 8)
       lineStyle: 'solid', // Default style
       metadata: { ...DEFAULT_ROUTE_METADATA },
       compliance: null,
       customStyle: false
     };
 
-    // Create final graphic with VERY VISIBLE symbol
-    const routeSymbol = createRouteSymbol('active');
-    console.log('🎨 Using symbol:', routeSymbol);
+    // Create final graphic with custom color from palette
+    const routeSymbol = {
+      type: "simple-line",
+      color: [...routeColor.rgb, 1], // Use RGB from palette with full opacity
+      width: routeData.lineWidth,
+      style: routeData.lineStyle,
+      cap: "round",
+      join: "round"
+    };
+    console.log('🎨 Using symbol with color:', routeColor.name, routeSymbol);
     
     const routeGraphic = new Graphic({
       geometry: polyline,

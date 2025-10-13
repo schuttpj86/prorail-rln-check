@@ -49,17 +49,6 @@ export const config = {
       max: 100  // milliseconds
     },
     
-    // Criterion 3: Distance for non-crossing cables ≥35kV
-    distanceHighVoltage: {
-      default: 700,     // meters
-      electrified25kV: 11  // meters (on 25kV/50Hz lines)
-    },
-    
-    // Criterion 4 & 5: Distance for cables <35kV
-    distanceLowVoltage: {
-      min: 11  // meters
-    },
-    
     // Criterion 6: Technical rooms
     technicalRoomDistance: {
       min: 20  // meters
@@ -68,6 +57,28 @@ export const config = {
     // Criterion 8: Joints and grounding
     jointDistance: {
       min: 31  // meters (20m + 11m)
+    },
+
+    // NEWLY ADDED/CENTRALIZED VALUES:
+    // Mast distance for overhead lines
+    mastDistance: {
+      min: 31  // meters for OHL masts from track
+    },
+
+    // Non-crossing distance thresholds (centralized from evaluator logic)
+    nonCrossingDistances: {
+      default: 700,              // meters, default for OHL and HV cables (≥35kV)
+      electrified25kV: 11,       // meters, exception for 25kV 50Hz tracks
+      lowVoltageCable: 11        // meters, for cables < 35kV
+    }
+  },
+
+  // Spatial query buffer distances (in meters)
+  spatialQuery: {
+    bufferDistances: {
+      tracks: 10000,          // 10km buffer for track queries
+      technicalRooms: 10000,  // 10km buffer for technical room queries
+      earthing: 50            // 50m buffer for earthing point queries (kept small - needs to be close)
     }
   },
 

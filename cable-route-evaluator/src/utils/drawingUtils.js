@@ -147,48 +147,36 @@ export async function snapToRailway(point, railwayLayer, tolerance = 50) {
 
 /**
  * Create a styled symbol for route drawing
+ * Note: For compliant/non-compliant status, we no longer change the route color.
+ * Instead, the route keeps its original assigned color, and compliance is shown
+ * through other visual indicators (like badges or outline styles in the UI).
  * 
- * @param {string} status - Route status: 'drawing', 'active', 'inactive', 'compliant', 'non-compliant'
+ * @param {string} status - Route status: 'drawing', 'active', 'inactive'
+ * @param {Object} customColor - Optional custom color {rgb: [r,g,b], hex: '#rrggbb'}
  * @returns {Object} ArcGIS symbol object
  */
-export function createRouteSymbol(status = 'drawing') {
+export function createRouteSymbol(status = 'drawing', customColor = null) {
   const symbols = {
     drawing: {
       type: "simple-line",
-      color: [0, 150, 255, 0.8], // Blue while drawing
-      width: 4,
+      color: [37, 99, 235, 0.8], // Modern blue while drawing
+      width: 3,
       style: "solid",
       cap: "round",
       join: "round"
     },
     active: {
       type: "simple-line",
-      color: [255, 0, 0, 1], // BRIGHT RED for maximum visibility
-      width: 8,
+      color: customColor ? [...customColor.rgb, 1] : [37, 99, 235, 1], // Use custom color or blue
+      width: 5,
       style: "solid",
       cap: "round",
       join: "round"
     },
     inactive: {
       type: "simple-line",
-      color: [128, 128, 128, 0.7], // Gray for unselected routes
+      color: customColor ? [...customColor.rgb, 0.6] : [128, 128, 128, 0.6], // Dimmed version
       width: 3,
-      style: "solid",
-      cap: "round",
-      join: "round"
-    },
-    compliant: {
-      type: "simple-line",
-      color: [0, 200, 0, 1], // Green for compliant routes
-      width: 4,
-      style: "solid",
-      cap: "round",
-      join: "round"
-    },
-    'non-compliant': {
-      type: "simple-line",
-      color: [255, 50, 50, 1], // Red for non-compliant routes
-      width: 4,
       style: "solid",
       cap: "round",
       join: "round"
@@ -197,7 +185,6 @@ export function createRouteSymbol(status = 'drawing') {
   
   return symbols[status] || symbols.drawing;
 }
-
 /**
  * Create waypoint markers for route endpoints
  * 
@@ -248,6 +235,44 @@ export function createWaypointSymbol(type = 'start') {
  */
 export function generateRouteId() {
   return `route-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Aesthetically pleasing color palette for routes
+ * Modern, professional colors with good contrast
+ */
+const ROUTE_COLOR_PALETTE = [
+  { hex: '#2563eb', rgb: [37, 99, 235], name: 'Blue' },        // Modern blue
+  { hex: '#16a34a', rgb: [22, 163, 74], name: 'Green' },       // Forest green
+  { hex: '#dc2626', rgb: [220, 38, 38], name: 'Red' },         // Vibrant red
+  { hex: '#9333ea', rgb: [147, 51, 234], name: 'Purple' },     // Royal purple
+  { hex: '#ea580c', rgb: [234, 88, 12], name: 'Orange' },      // Warm orange
+  { hex: '#0891b2', rgb: [8, 145, 178], name: 'Cyan' },        // Ocean cyan
+  { hex: '#c026d3', rgb: [192, 38, 211], name: 'Magenta' },    // Bright magenta
+  { hex: '#65a30d', rgb: [101, 163, 13], name: 'Lime' },       // Fresh lime
+  { hex: '#0284c7', rgb: [2, 132, 199], name: 'Sky Blue' },    // Sky blue
+  { hex: '#db2777', rgb: [219, 39, 119], name: 'Pink' },       // Hot pink
+];
+
+let nextColorIndex = 0;
+
+/**
+ * Get the next color from the palette
+ * Cycles through the palette for variety
+ * 
+ * @returns {Object} Color object with hex, rgb, and name
+ */
+export function getNextRouteColor() {
+  const color = ROUTE_COLOR_PALETTE[nextColorIndex];
+  nextColorIndex = (nextColorIndex + 1) % ROUTE_COLOR_PALETTE.length;
+  return color;
+}
+
+/**
+ * Reset color index (useful for testing or initialization)
+ */
+export function resetColorIndex() {
+  nextColorIndex = 0;
 }
 
 /**

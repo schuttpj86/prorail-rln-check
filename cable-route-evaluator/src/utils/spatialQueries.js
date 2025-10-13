@@ -9,16 +9,17 @@
 
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
 import Query from "@arcgis/core/rest/support/Query";
+import { config } from "../config.js";
 
 /**
  * Query technical rooms (EV Gebouwen) near a route
  * 
  * @param {Polyline} routeGeometry - The cable route geometry
  * @param {Layer} technicalRoomsLayer - The EV Gebouwen layer
- * @param {number} bufferDistance - Search buffer distance in meters (default: 100m)
+ * @param {number} bufferDistance - Search buffer distance in meters (default from config)
  * @returns {Promise<Object>} Query results with features and minimum distance
  */
-export async function queryTechnicalRooms(routeGeometry, technicalRoomsLayer, bufferDistance = 100) {
+export async function queryTechnicalRooms(routeGeometry, technicalRoomsLayer, bufferDistance = config.spatialQuery?.bufferDistances?.technicalRooms ?? 10000) {
   console.log(`🏢 Querying technical rooms within ${bufferDistance}m of route...`);
 
   if (!routeGeometry || !technicalRoomsLayer) {
@@ -82,10 +83,10 @@ export async function queryTechnicalRooms(routeGeometry, technicalRoomsLayer, bu
  * 
  * @param {Polyline} routeGeometry - The cable route geometry
  * @param {Layer} tracksLayer - The railway tracks layer
- * @param {number} bufferDistance - Search buffer distance in meters (default: 100m)
+ * @param {number} bufferDistance - Search buffer distance in meters (default from config)
  * @returns {Promise<Object>} Query results with features and minimum distance
  */
-export async function queryTrackCenterlines(routeGeometry, tracksLayer, bufferDistance = 100) {
+export async function queryTrackCenterlines(routeGeometry, tracksLayer, bufferDistance = config.spatialQuery?.bufferDistances?.tracks ?? 10000) {
   console.log(`🛤️ Querying track centerlines within ${bufferDistance}m of route...`);
 
   if (!routeGeometry || !tracksLayer) {
@@ -149,10 +150,10 @@ export async function queryTrackCenterlines(routeGeometry, tracksLayer, bufferDi
  * 
  * @param {Polyline} routeGeometry - The cable route geometry
  * @param {Layer} earthingLayer - The earthing points layer
- * @param {number} bufferDistance - Search buffer distance in meters (default: 50m)
+ * @param {number} bufferDistance - Search buffer distance in meters (default from config)
  * @returns {Promise<Object>} Query results with features
  */
-export async function queryEarthingPoints(routeGeometry, earthingLayer, bufferDistance = 50) {
+export async function queryEarthingPoints(routeGeometry, earthingLayer, bufferDistance = config.spatialQuery?.bufferDistances?.earthing ?? 50) {
   console.log(`⚡ Querying earthing points within ${bufferDistance}m of route...`);
 
   if (!routeGeometry || !earthingLayer) {
@@ -278,8 +279,8 @@ export async function performCompleteSpatialAnalysis(routeGeometry, layers) {
     try {
       results.technicalRooms = await queryTechnicalRooms(
         routeGeometry,
-        layers.technicalRoomsLayer,
-        100 // Search within 100m
+        layers.technicalRoomsLayer
+        // Uses default buffer distance from config
       );
     } catch (error) {
       console.error('❌ Technical rooms query failed:', error);
@@ -293,8 +294,8 @@ export async function performCompleteSpatialAnalysis(routeGeometry, layers) {
     try {
       results.tracks = await queryTrackCenterlines(
         routeGeometry,
-        layers.tracksLayer,
-        100 // Search within 100m
+        layers.tracksLayer
+        // Uses default buffer distance from config
       );
     } catch (error) {
       console.error('❌ Tracks query failed:', error);
@@ -308,8 +309,8 @@ export async function performCompleteSpatialAnalysis(routeGeometry, layers) {
     try {
       results.earthing = await queryEarthingPoints(
         routeGeometry,
-        layers.earthingLayer,
-        50 // Search within 50m
+        layers.earthingLayer
+        // Uses default buffer distance from config (50m)
       );
 
       // Calculate earthing to track distances if we have both
