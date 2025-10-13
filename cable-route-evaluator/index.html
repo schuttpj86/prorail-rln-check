@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:;base64,=" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProRail Cable Route Evaluator</title>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Header Bar -->
+      <div id="header">
+        <h1>ProRail Cable Route Evaluator</h1>
+        <div class="header-actions">
+          <button class="header-btn" id="help-btn" title="Help & Documentation">
+            Help
+          </button>
+          <button class="header-btn" id="settings-btn" title="Settings">
+            Settings
+          </button>
+        </div>
+      </div>
+
+      <!-- Control Panel -->
+      <div id="controlPanel" class="panel">
+        <div class="panel-header">
+          <h2>Routes</h2>
+        </div>
+        <div class="panel-content">
+          <!-- Drawing Controls -->
+          <div id="drawing-section" class="section">
+            <h3>New Route</h3>
+            <div class="drawing-controls">
+              <button id="start-drawing" class="draw-btn draw-btn-primary" title="Start drawing a new cable route">
+                Draw
+              </button>
+              <button id="cancel-drawing" class="draw-btn draw-btn-secondary" disabled title="Cancel current drawing">
+                Cancel
+              </button>
+            </div>
+            
+            <div id="drawing-status" style="
+              padding: 16px; 
+              background: #fafafa; 
+              border-radius: 6px; 
+              font-size: 0.875rem; 
+              color: #666666;
+              line-height: 1.6;
+              border: 1px solid #e5e5e5;
+            ">
+              Click 'Draw' to start creating a new cable route
+            </div>
+          </div>
+          
+          <!-- Routes List -->
+          <div id="routeList" class="section">
+            <h3>All Routes</h3>
+            <div id="routes"></div>
+            <p id="no-routes-message" style="
+              margin-top: 16px; 
+              padding: 28px;
+              font-size: 0.875rem; 
+              color: #999999; 
+              text-align: center;
+              background: #fafafa;
+              border-radius: 8px;
+              border: 1px dashed #d4d4d4;
+              line-height: 1.8;
+            ">
+              No routes yet<br>
+              <span style="font-size: 0.8125rem; color: #bbbbbb;">Click "Draw" to create one</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Map Container -->
+      <div id="viewDiv">
+        <div id="map-loading" style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: white;
+          padding: 40px 48px;
+          border-radius: 8px;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+          z-index: 9999;
+          text-align: center;
+          border: 1px solid #e5e5e5;
+        ">
+          <h3 style="margin: 0 0 12px 0; color: #000000; font-size: 1rem; font-weight: 500; letter-spacing: -0.01em;">Loading Map</h3>
+          <p style="color: #666666; margin: 0; font-size: 0.875rem;">Please wait</p>
+        </div>
+      </div>
+
+      <!-- Results Panel -->
+      <div id="resultsPanel" class="panel">
+        <div class="panel-header">
+          <h2>Results</h2>
+        </div>
+        <div class="panel-content">
+          <div id="results"></div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "cable-route-evaluator",
+  "version": "1.0.0",
+  "description": "ProRail Cable Route EMC Compliance Evaluation Tool",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@arcgis/core": "~4.33.0",
+    "@esri/calcite-components": "^3.2.1"
+  },
+  "devDependencies": {
+    "vite": "^7.0.4"
+  }
+}
