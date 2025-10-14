@@ -31,6 +31,7 @@ import {
 } from "./layers/layerConfig.js";
 import { createFeatureLayersWithHandling } from "./layers/layerFactory.js";
 import { EnhancedDrawingManager } from "./utils/EnhancedDrawingManager.js";
+import { getCurrentLanguage, setCurrentLanguage, t, updateTranslations } from "./i18n/translations.js";
 import { evaluateRoute } from "./utils/emcEvaluator.js";
 import {
   createBuffer,
@@ -1889,6 +1890,31 @@ function updateRouteCount() {
  * Set up UI event listeners
  */
 function setupUI(drawingManager) {
+  // Initialize language
+  const currentLang = getCurrentLanguage();
+  updateTranslations(currentLang);
+  
+  // Language toggle button
+  const langToggle = document.getElementById('lang-toggle');
+  if (langToggle) {
+    // Set initial button text
+    langToggle.textContent = currentLang === 'en' ? '🇳🇱 NL' : '🇬🇧 EN';
+    
+    langToggle.addEventListener('click', () => {
+      const newLang = getCurrentLanguage() === 'en' ? 'nl' : 'en';
+      setCurrentLanguage(newLang);
+      updateTranslations(newLang);
+      
+      // Update button text
+      langToggle.textContent = newLang === 'en' ? '🇳🇱 NL' : '🇬🇧 EN';
+      
+      // Update document language
+      document.documentElement.lang = newLang;
+      
+      console.log(`🌐 Language changed to: ${newLang.toUpperCase()}`);
+    });
+  }
+  
   // Drawing buttons in left panel
   const startBtn = document.getElementById('start-drawing');
   const cancelBtn = document.getElementById('cancel-drawing');

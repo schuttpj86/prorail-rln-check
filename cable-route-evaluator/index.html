@@ -10,13 +10,16 @@
     <div id="app">
       <!-- Header Bar -->
       <div id="header">
-        <h1>ProRail Cable Route Evaluator</h1>
+        <h1 data-i18n="appTitle">ProRail Cable Route Evaluator</h1>
         <div class="header-actions">
-          <button class="header-btn" id="help-btn" title="Help & Documentation">
-            Help
+          <button class="header-btn" id="lang-toggle" title="Switch Language / Taal Wijzigen">
+            🇳🇱 NL
           </button>
-          <button class="header-btn" id="settings-btn" title="Settings">
-            Settings
+          <button class="header-btn" id="help-btn" data-i18n-title="Help & Documentation" title="Help & Documentation">
+            <span data-i18n="help">Help</span>
+          </button>
+          <button class="header-btn" id="settings-btn" data-i18n-title="Settings" title="Settings">
+            <span data-i18n="settings">Settings</span>
           </button>
         </div>
       </div>
@@ -24,13 +27,13 @@
       <!-- Routes Panel (Left) -->
       <div id="controlPanel" class="panel">
         <div class="panel-header">
-          <h2>Routes</h2>
+          <h2 data-i18n="routes">Routes</h2>
           <!-- Drawing Widget (Top Left) -->
           <div id="drawing-widget" class="map-widget-inline">
-            <button id="start-drawing" class="draw-btn draw-btn-primary" title="Start drawing a new cable route">
+            <button id="start-drawing" class="draw-btn draw-btn-primary" data-i18n-title="startDrawing" title="Start drawing a new cable route">
               ➕
             </button>
-            <button id="cancel-drawing" class="draw-btn draw-btn-secondary" disabled title="Cancel current drawing">
+            <button id="cancel-drawing" class="draw-btn draw-btn-secondary" disabled data-i18n-title="cancelDrawing" title="Cancel current drawing">
               ✖
             </button>
           </div>
@@ -50,8 +53,8 @@
               border: 1px dashed #d4d4d4;
               line-height: 1.8;
             ">
-              No routes yet<br>
-              <span style="font-size: 0.8125rem; color: #bbbbbb;">Click ➕ to create one</span>
+              <span data-i18n="noRoutesYet">No routes yet</span><br>
+              <span style="font-size: 0.8125rem; color: #bbbbbb;" data-i18n="clickToCreateRoute">Click ➕ to create one</span>
             </p>
           </div>
         </div>
@@ -73,46 +76,42 @@
           max-width: 600px;
           border: 1px solid #e5e5e5;
         ">
-          <h2 style="margin: 0 0 20px 0; color: #000000; font-size: 1.5rem; font-weight: 600;">
+          <h2 style="margin: 0 0 20px 0; color: #000000; font-size: 1.5rem; font-weight: 600;" data-i18n="welcomeTitle">
             Welcome to ProRail Cable Route Evaluator
           </h2>
           
           <div style="margin-bottom: 24px; line-height: 1.6; color: #333333;">
-            <p style="margin: 0 0 16px 0; font-size: 0.9375rem;">
+            <p style="margin: 0 0 16px 0; font-size: 0.9375rem;" data-i18n="welcomeDescription">
               This tool helps you design and evaluate cable routes along railway infrastructure for compliance with EMC (Electromagnetic Compatibility) requirements.
             </p>
             
-            <h3 style="margin: 0 0 12px 0; font-size: 1rem; font-weight: 600; color: #000000;">
+            <h3 style="margin: 0 0 12px 0; font-size: 1rem; font-weight: 600; color: #000000;" data-i18n="howToUse">
               How to Use:
             </h3>
             
             <div style="margin-bottom: 20px;">
-              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;">
+              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;" data-i18n="drawingRoutesTitle">
                 📍 Drawing Routes:
               </p>
               <ul style="margin: 0 0 12px 0; padding-left: 24px; font-size: 0.875rem; color: #555555;">
-                <li>Click the <strong>➕ button</strong> in the top-left Routes panel</li>
-                <li>Click on the map to add waypoints along your route</li>
-                <li><strong>Double-click</strong> to finish the route</li>
-                <li>Hover over the ➕ button for quick tips</li>
+                <li data-i18n="drawingRoutesStep1">Click the <strong>➕ button</strong> in the top-left Routes panel</li>
+                <li data-i18n="drawingRoutesStep2">Click on the map to add waypoints along your route</li>
+                <li data-i18n="drawingRoutesStep3"><strong>Double-click</strong> to finish the route</li>
+                <li data-i18n="drawingRoutesStep4">Hover over the ➕ button for quick tips</li>
               </ul>
               
-              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;">
-                ⚡ Infrastructure Types:
+              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;" data-i18n="evaluatingRoutesTitle">
+                📊 Evaluating Routes:
               </p>
               <ul style="margin: 0 0 12px 0; padding-left: 24px; font-size: 0.875rem; color: #555555;">
-                <li><strong>Cables:</strong> Underground or overhead cable routes</li>
-                <li><strong>OHL (Overhead Lines):</strong> Overhead power line routes</li>
+                <li data-i18n="evaluatingRoutesStep1">After drawing, routes appear in the Routes panel</li>
+                <li data-i18n="evaluatingRoutesStep2">Click Evaluate to check EMC compliance</li>
+                <li data-i18n="evaluatingRoutesStep3">View detailed results and distance measurements</li>
               </ul>
               
-              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;">
-                📊 View Your Results:
+              <p style="margin: 0 0 8px 0; font-size: 0.8125rem; color: #666666; font-style: italic;" data-i18n="standardInfo">
+                Based on ProRail Standard RLN00398: EMC Requirements for High-Voltage Connections
               </p>
-              <ul style="margin: 0; padding-left: 24px; font-size: 0.875rem; color: #555555;">
-                <li><strong>Left Panel (Routes):</strong> All your drawn routes with details</li>
-                <li><strong>Right Panel (Results):</strong> EMC evaluation results and compliance status</li>
-                <li><strong>Map Layers:</strong> Toggle railway infrastructure layers (top-right icon)</li>
-              </ul>
             </div>
           </div>
           
@@ -127,7 +126,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
-          " onmouseover="this.style.background='#1a1a1a'" onmouseout="this.style.background='#000000'">
+          " onmouseover="this.style.background='#1a1a1a'" onmouseout="this.style.background='#000000'" data-i18n="getStarted">
             Get Started
           </button>
         </div>

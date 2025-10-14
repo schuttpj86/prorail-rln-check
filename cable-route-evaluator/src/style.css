@@ -75,6 +75,18 @@ body {
   border-color: #555555;
 }
 
+#header #lang-toggle {
+  background: #1a1a1a;
+  border-color: #444444;
+  font-weight: 500;
+  min-width: 70px;
+}
+
+#header #lang-toggle:hover {
+  background: #2a2a2a;
+  border-color: #666666;
+}
+
 /* Map Container */
 #viewDiv {
   grid-column: 2;
