@@ -21,46 +21,49 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Calcite Shell takes full height */
+calcite-shell {
+  --calcite-shell-panel-width: 400px;
+  --calcite-shell-panel-max-width: 600px;
+}
+
+calcite-shell-panel {
+  --calcite-shell-panel-width: 400px;
+}
+
+/* Map and app container */
 #app {
-  height: 100%;
+  flex: 1;
+  display: flex;
+  position: relative;
   width: 100%;
-  display: grid;
-  grid-template-columns: 400px 1fr 360px;
-  grid-template-rows: 64px 1fr;
-  gap: 0;
-  background: #fafafa;
+  height: 100%;
 }
 
-/* Header Bar */
-#header {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  background: #000000;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 32px;
-  border-bottom: 1px solid #e5e5e5;
-  z-index: 100;
+#viewDiv {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 
-#header h1 {
-  font-size: 1.25rem;
-  font-weight: 500;
-  margin: 0;
-  letter-spacing: -0.025em;
+/* Panel content styling */
+.panel-content-inner {
+  padding: 0;
 }
 
-#header .header-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+#controlPanel {
+  padding: 20px;
 }
 
-#header .header-btn {
-  background: transparent;
-  border: 1px solid #333333;
+#resultsPanel {
+  padding: 20px;
+}
+
+/* Header buttons styling */
+.header-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
   padding: 7px 16px;
   border-radius: 6px;
@@ -70,58 +73,24 @@ body {
   font-weight: 400;
 }
 
-#header .header-btn:hover {
-  background: #1a1a1a;
-  border-color: #555555;
+.header-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
-#header #lang-toggle {
-  background: #1a1a1a;
-  border-color: #444444;
+#lang-toggle {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
   font-weight: 500;
   min-width: 70px;
 }
 
-#header #lang-toggle:hover {
-  background: #2a2a2a;
-  border-color: #666666;
+#lang-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
-/* Map Container */
-#viewDiv {
-  grid-column: 2;
-  grid-row: 2;
-  height: 100%;
-  width: 100%;
-  position: relative;
-  background: #fafafa;
-  z-index: 0;
-  border-left: 1px solid #e5e5e5;
-  border-right: 1px solid #e5e5e5;
-}
-
-/* Old floating widget styles removed - now using inline .map-widget-inline */
-
-/* Side Panels */
-.panel {
-  background: #ffffff;
-  padding: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  z-index: 1;
-  position: relative;
-}
-
-.panel-header {
-  background: #ffffff;
-  border-bottom: 1px solid #e5e5e5;
-  padding: 20px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
+/* Old panel styles - removed, using Calcite panels */
 
 /* Drawing Widget - Inline in Panel Header */
 .map-widget-inline {
@@ -207,21 +176,6 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-}
-
-#controlPanel {
-  grid-column: 1;
-  grid-row: 2;
-  border-right: 1px solid #e5e5e5;
-  resize: horizontal;
-  overflow: auto;
-  min-width: 350px;
-  max-width: 600px;
-}
-
-#resultsPanel {
-  grid-column: 3;
-  grid-row: 2;
 }
 
 /* Typography */

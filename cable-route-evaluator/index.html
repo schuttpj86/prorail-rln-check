@@ -7,11 +7,17 @@
     <title>ProRail Cable Route Evaluator</title>
   </head>
   <body>
-    <div id="app">
-      <!-- Header Bar -->
-      <div id="header">
-        <h1 data-i18n="appTitle">ProRail Cable Route Evaluator</h1>
-        <div class="header-actions">
+    <calcite-shell>
+      <!-- Top Navigation Bar -->
+      <calcite-navigation slot="header">
+        <calcite-navigation-logo 
+          slot="logo" 
+          heading="ProRail Cable Route Evaluator"
+          description="EMC Compliance Analysis Tool">
+        </calcite-navigation-logo>
+        
+        <!-- Language toggle and actions in header -->
+        <div slot="content-end" style="display: flex; gap: 8px; align-items: center; padding-right: 16px;">
           <button class="header-btn" id="lang-toggle" title="Switch Language / Taal Wijzigen">
             🇳🇱 NL
           </button>
@@ -22,38 +28,85 @@
             <span data-i18n="settings">Settings</span>
           </button>
         </div>
-      </div>
+      </calcite-navigation>
 
-      <!-- Routes Panel (Left) -->
-      <div id="controlPanel" class="panel">
-        <div class="panel-header">
-          <h2 data-i18n="routes">Routes</h2>
-        </div>
+      <!-- Left Collapsible Panel with Action Bar -->
+      <calcite-shell-panel 
+        slot="panel-start" 
+        position="start"
+        width-scale="m"
+        id="leftPanel">
         
-        <div class="panel-content">
-          <!-- Routes List -->
-          <div id="routeList" class="section">
-            <div id="routes"></div>
-            <p id="no-routes-message" style="
-              margin-top: 16px; 
-              padding: 28px;
-              font-size: 0.875rem; 
-              color: #999999; 
-              text-align: center;
-              background: #fafafa;
-              border-radius: 8px;
-              border: 1px dashed #d4d4d4;
-              line-height: 1.8;
-            ">
-              <span data-i18n="noRoutesYet">No routes yet</span><br>
-              <span style="font-size: 0.8125rem; color: #bbbbbb;" data-i18n="clickToCreateRoute">Click ➕ to create one</span>
-            </p>
+        <calcite-action-bar slot="action-bar" id="actionBar">
+          <calcite-action 
+            text="Routes" 
+            icon="map-pin" 
+            id="action-routes"
+            active>
+          </calcite-action>
+          <calcite-action 
+            text="Tools" 
+            icon="measure" 
+            id="action-tools">
+          </calcite-action>
+          <calcite-action 
+            text="Layers" 
+            icon="layers" 
+            id="action-layers">
+          </calcite-action>
+        </calcite-action-bar>
+
+        <!-- Routes Panel Content -->
+        <calcite-panel 
+          heading="Cable Routes" 
+          id="panel-routes">
+          <div id="controlPanel" class="panel-content-inner">
+            <!-- Routes List -->
+            <div id="routeList" class="section">
+              <div id="routes"></div>
+              <p id="no-routes-message" style="
+                margin-top: 16px; 
+                padding: 28px;
+                font-size: 0.875rem; 
+                color: #999999; 
+                text-align: center;
+                background: #fafafa;
+                border-radius: 8px;
+                border: 1px dashed #d4d4d4;
+                line-height: 1.8;
+              ">
+                <span data-i18n="noRoutesYet">No routes yet</span><br>
+                <span style="font-size: 0.8125rem; color: #bbbbbb;" data-i18n="clickToCreateRoute">Click ➕ to create one</span>
+              </p>
+            </div>
           </div>
-        </div>
-      </div>
-      
+        </calcite-panel>
+
+        <!-- Tools Panel Content (hidden by default) -->
+        <calcite-panel 
+          heading="Tools" 
+          id="panel-tools"
+          hidden>
+          <div class="panel-content-inner">
+            <p style="padding: 20px; color: #666;">Tools panel - coming soon</p>
+          </div>
+        </calcite-panel>
+
+        <!-- Layers Panel Content (hidden by default) -->
+        <calcite-panel 
+          heading="Layers" 
+          id="panel-layers"
+          hidden>
+          <div class="panel-content-inner">
+            <p style="padding: 20px; color: #666;">Layers panel - coming soon</p>
+          </div>
+        </calcite-panel>
+
+      </calcite-shell-panel>
+
       <!-- Map Container -->
-      <div id="viewDiv">
+      <div id="app" style="display: flex; height: 100%; width: 100%; flex: 1;">
+        <div id="viewDiv" style="width: 100%; height: 100%; position: relative;">
         <!-- Welcome Message -->
         <div id="welcome-message" style="
           position: absolute;
@@ -183,20 +236,27 @@
         
         <!-- Measurement Widget Toggle (Minimized) -->
         <button id="measurement-widget-toggle" class="measurement-widget-toggle" title="Open tools">
-          �️
+          🛠️
         </button>
+        </div>
       </div>
 
-      <!-- Results Panel -->
-      <div id="resultsPanel" class="panel">
-        <div class="panel-header">
-          <h2>Results</h2>
-        </div>
-        <div class="panel-content">
-          <div id="results"></div>
-        </div>
-      </div>
-    </div>
+      <!-- Right Collapsible Panel for Results -->
+      <calcite-shell-panel 
+        slot="panel-end" 
+        position="end"
+        width-scale="m"
+        collapsed
+        id="rightPanel">
+        
+        <calcite-panel heading="Evaluation Results">
+          <div id="resultsPanel" class="panel-content-inner">
+            <div id="results"></div>
+          </div>
+        </calcite-panel>
+      </calcite-shell-panel>
+
+    </calcite-shell>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

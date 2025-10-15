@@ -5,6 +5,20 @@
  * against ProRail's EMC standards (RLN00398, Version 002, 01-12-2020).
  */
 
+// Import Calcite Components for UI
+import "@esri/calcite-components/dist/calcite/calcite.css";
+import { setAssetPath } from "@esri/calcite-components/dist/components";
+import "@esri/calcite-components/dist/components/calcite-shell";
+import "@esri/calcite-components/dist/components/calcite-shell-panel";
+import "@esri/calcite-components/dist/components/calcite-navigation";
+import "@esri/calcite-components/dist/components/calcite-navigation-logo";
+import "@esri/calcite-components/dist/components/calcite-action-bar";
+import "@esri/calcite-components/dist/components/calcite-action";
+import "@esri/calcite-components/dist/components/calcite-panel";
+
+// Set asset path for Calcite icons
+setAssetPath("https://js.arcgis.com/calcite-components/3.2.1/assets");
+
 import EsriMap from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
@@ -1304,6 +1318,11 @@ function renderEvaluationReports(focusRouteId = null) {
 
   if (focusRouteId) {
     evaluationUIState.expandedRouteIds.add(focusRouteId);
+    // Expand right panel when showing results
+    const rightPanel = document.getElementById('rightPanel');
+    if (rightPanel) {
+      rightPanel.collapsed = false;
+    }
   }
 
   const routes = drawingManager.getAllRoutes ? [...drawingManager.getAllRoutes()] : [];
@@ -2835,6 +2854,48 @@ console.log('🚀 Initializing application...');
 
 const { map, view, drawingManager, cableRoutesLayer, jointsLayer, distanceAnnotationsLayer, railwayTracksLayer, trackSectionsLayer, switchesLayer, stationsLayer } = initializeMap();
 setupUI(drawingManager);
+
+// Initialize Calcite Panel Switching
+function initializePanelSwitching() {
+  const actionBar = document.getElementById('actionBar');
+  const leftPanel = document.getElementById('leftPanel');
+  const panels = {
+    'action-routes': 'panel-routes',
+    'action-tools': 'panel-tools',
+    'action-layers': 'panel-layers'
+  };
+
+  if (actionBar) {
+    actionBar.addEventListener('click', (event) => {
+      const action = event.target.closest('calcite-action');
+      if (!action) return;
+
+      // Hide all panels
+      Object.values(panels).forEach(panelId => {
+        const panel = document.getElementById(panelId);
+        if (panel) panel.hidden = true;
+      });
+
+      // Remove active from all actions
+      Object.keys(panels).forEach(actionId => {
+        const actionEl = document.getElementById(actionId);
+        if (actionEl) actionEl.active = false;
+      });
+
+      // Show selected panel and activate action
+      const targetPanel = document.getElementById(panels[action.id]);
+      if (targetPanel) {
+        targetPanel.hidden = false;
+        action.active = true;
+        
+        // Make sure the panel is expanded
+        if (leftPanel) leftPanel.collapsed = false;
+      }
+    });
+  }
+}
+
+initializePanelSwitching();
 
 console.log('✅ Application ready');
 
