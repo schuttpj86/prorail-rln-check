@@ -738,9 +738,12 @@ function addRouteToList(routeData) {
   const routesContainer = document.getElementById('routes');
   const routeId = routeData.id;
   
-  // Hide "no routes" message
-  const noRoutesMsg = document.getElementById('no-routes-message');
-  if (noRoutesMsg) noRoutesMsg.style.display = 'none';
+  // Don't hide "no routes" message - keep it as create button
+  // const noRoutesMsg = document.getElementById('no-routes-message');
+  // if (noRoutesMsg) noRoutesMsg.style.display = 'none';
+  
+  // Update route counter
+  updateRouteCounter();
   
   // Prompt for route name
   let routeName = prompt('Enter a name for this route:', routeData.name);
@@ -1020,7 +1023,8 @@ function addRouteToList(routeData) {
     </div>
   `;
   
-  routesContainer.appendChild(routeItem);
+  // Prepend route item (add to top of list, not bottom)
+  routesContainer.insertBefore(routeItem, routesContainer.firstChild);
   updateRouteComplianceUI(routeId);
   evaluationUIState.runningRouteIds.delete(routeId);
   ensureEvaluationErrorsMap().delete(routeId);
@@ -2897,41 +2901,78 @@ function initializeCollapseButtons() {
   const leftPanel = document.getElementById('leftPanel');
   const rightPanel = document.getElementById('rightPanel');
   const collapseLeft = document.getElementById('collapse-left');
+  const collapseRight = document.getElementById('collapse-right');
   const routesAction = document.getElementById('action-routes');
   const routesPanel = document.getElementById('panel-routes');
   
   if (collapseLeft && leftPanel) {
     collapseLeft.addEventListener('click', () => {
-      leftPanel.collapsed = !leftPanel.collapsed;
+      const isCurrentlyCollapsed = leftPanel.collapsed;
+      leftPanel.collapsed = !isCurrentlyCollapsed;
       // Update icon
       collapseLeft.icon = leftPanel.collapsed ? 'chevron-right' : 'chevron-left';
       
       // When expanding, ensure Routes panel is visible
-      if (!leftPanel.collapsed && routesPanel && routesAction) {
-        // Hide all panels first
-        const allPanels = ['panel-routes', 'panel-tools', 'panel-layers'];
-        allPanels.forEach(panelId => {
-          const panel = document.getElementById(panelId);
-          if (panel) panel.hidden = true;
-        });
-        
-        // Show routes panel and activate its action
-        routesPanel.hidden = false;
-        
-        // Remove active from all actions
-        const allActions = ['action-routes', 'action-tools', 'action-layers'];
-        allActions.forEach(actionId => {
-          const action = document.getElementById(actionId);
-          if (action) action.active = false;
-        });
-        
-        routesAction.active = true;
+      if (!leftPanel.collapsed) {
+        // Use timeout to ensure panel is expanded first
+        setTimeout(() => {
+          if (routesPanel && routesAction) {
+            // Hide all panels first
+            const allPanels = ['panel-routes', 'panel-tools', 'panel-layers'];
+            allPanels.forEach(panelId => {
+              const panel = document.getElementById(panelId);
+              if (panel) panel.hidden = true;
+            });
+            
+            // Show routes panel and activate its action
+            routesPanel.hidden = false;
+            
+            // Remove active from all actions
+            const allActions = ['action-routes', 'action-tools', 'action-layers'];
+            allActions.forEach(actionId => {
+              const action = document.getElementById(actionId);
+              if (action) action.active = false;
+            });
+            
+            routesAction.active = true;
+          }
+        }, 50);
       }
+    });
+  }
+  
+  // Handle right panel collapse
+  if (collapseRight && rightPanel) {
+    collapseRight.addEventListener('click', () => {
+      rightPanel.collapsed = !rightPanel.collapsed;
+      // Update icon
+      collapseRight.icon = rightPanel.collapsed ? 'chevron-left' : 'chevron-right';
     });
   }
 }
 
 initializeCollapseButtons();
+
+// Update route counter display
+function updateRouteCounter() {
+  const routeCountText = document.getElementById('route-count-text');
+  if (routeCountText && window.app?.drawingManager) {
+    const routes = window.app.drawingManager.getAllRoutes();
+    const count = routes ? routes.size : 0;
+    routeCountText.textContent = `${count} route${count !== 1 ? 's' : ''}`;
+  }
+}
+
+// Make "create route" button functional
+const createRouteBtn = document.getElementById('no-routes-message');
+if (createRouteBtn) {
+  createRouteBtn.addEventListener('click', () => {
+    const startDrawingBtn = document.getElementById('start-drawing-bottom');
+    if (startDrawingBtn) {
+      startDrawingBtn.click();
+    }
+  });
+}
 
 console.log('✅ Application ready');
 

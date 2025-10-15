@@ -72,23 +72,42 @@
           heading="High Voltage Connection Routes" 
           id="panel-routes">
           <div id="controlPanel" class="panel-content-inner">
+            <!-- Route Counter - Sticky Header -->
+            <div id="route-counter" style="
+              position: sticky;
+              top: 0;
+              z-index: 10;
+              background: white;
+              padding: 12px 20px;
+              border-bottom: 1px solid #e5e5e5;
+              font-size: 0.875rem;
+              font-weight: 500;
+              color: #666;
+            ">
+              <span id="route-count-text">0 routes</span>
+            </div>
+            
             <!-- Routes List -->
-            <div id="routeList" class="section">
-              <div id="routes"></div>
-              <p id="no-routes-message" style="
-                margin-top: 16px; 
-                padding: 28px;
+            <div id="routeList" class="section" style="padding: 20px;">
+              <!-- Create Route Button/Message -->
+              <button id="no-routes-message" style="
+                width: 100%;
+                margin-bottom: 12px; 
+                padding: 14px 16px;
                 font-size: 0.875rem; 
-                color: #999999; 
+                color: #0079c1; 
                 text-align: center;
-                background: #fafafa;
-                border-radius: 8px;
-                border: 1px dashed #d4d4d4;
-                line-height: 1.8;
-              ">
-                <span data-i18n="noRoutesYet">No routes yet</span><br>
-                <span style="font-size: 0.8125rem; color: #bbbbbb;" data-i18n="clickToCreateRoute">Click ➕ to create one</span>
-              </p>
+                background: #f0f7fc;
+                border-radius: 6px;
+                border: 1px solid #0079c1;
+                line-height: 1.4;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-weight: 500;
+              " onmouseover="this.style.background='#e6f2fa'" onmouseout="this.style.background='#f0f7fc'">
+                ➕ <span data-i18n="clickToCreateRoute">Click here to create a route</span>
+              </button>
+              <div id="routes"></div>
             </div>
           </div>
         </calcite-panel>
@@ -246,6 +265,16 @@
         display-mode="float"
         collapsed
         id="rightPanel">
+        
+        <calcite-action-bar slot="action-bar">
+          <calcite-action 
+            slot="actions-end"
+            text="Collapse results panel" 
+            icon="chevron-right" 
+            id="collapse-right"
+            scale="s">
+          </calcite-action>
+        </calcite-action-bar>
         
         <calcite-panel heading="Evaluation Results">
           <div id="resultsPanel" class="panel-content-inner">
