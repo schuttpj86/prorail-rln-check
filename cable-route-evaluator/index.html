@@ -12,7 +12,7 @@
       <calcite-navigation slot="header">
         <calcite-navigation-logo 
           slot="logo" 
-          heading="ProRail Cable Route Evaluator"
+          heading="ProRail HV Connection Route Evaluator"
           description="EMC Compliance Analysis Tool">
         </calcite-navigation-logo>
         
@@ -35,11 +35,12 @@
         slot="panel-start" 
         position="start"
         width-scale="m"
+        collapsible
         id="leftPanel">
         
         <calcite-action-bar slot="action-bar" id="actionBar">
           <calcite-action 
-            text="Routes" 
+            text="HV Connection Routes" 
             icon="map-pin" 
             id="action-routes"
             active>
@@ -58,7 +59,7 @@
 
         <!-- Routes Panel Content -->
         <calcite-panel 
-          heading="Cable Routes" 
+          heading="High Voltage Connection Routes" 
           id="panel-routes">
           <div id="controlPanel" class="panel-content-inner">
             <!-- Routes List -->
@@ -231,6 +232,7 @@
         slot="panel-end" 
         position="end"
         width-scale="m"
+        collapsible
         collapsed
         id="rightPanel">
         
