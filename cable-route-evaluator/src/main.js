@@ -14,6 +14,7 @@ import "@esri/calcite-components/dist/components/calcite-navigation";
 import "@esri/calcite-components/dist/components/calcite-navigation-logo";
 import "@esri/calcite-components/dist/components/calcite-action-bar";
 import "@esri/calcite-components/dist/components/calcite-action";
+import "@esri/calcite-components/dist/components/calcite-action-pad";
 import "@esri/calcite-components/dist/components/calcite-panel";
 
 // Set asset path for Calcite icons
