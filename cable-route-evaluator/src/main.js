@@ -2892,6 +2892,47 @@ function initializePanelSwitching() {
 
 initializePanelSwitching();
 
+// Initialize collapse buttons for panels
+function initializeCollapseButtons() {
+  const leftPanel = document.getElementById('leftPanel');
+  const rightPanel = document.getElementById('rightPanel');
+  const collapseLeft = document.getElementById('collapse-left');
+  const routesAction = document.getElementById('action-routes');
+  const routesPanel = document.getElementById('panel-routes');
+  
+  if (collapseLeft && leftPanel) {
+    collapseLeft.addEventListener('click', () => {
+      leftPanel.collapsed = !leftPanel.collapsed;
+      // Update icon
+      collapseLeft.icon = leftPanel.collapsed ? 'chevron-right' : 'chevron-left';
+      
+      // When expanding, ensure Routes panel is visible
+      if (!leftPanel.collapsed && routesPanel && routesAction) {
+        // Hide all panels first
+        const allPanels = ['panel-routes', 'panel-tools', 'panel-layers'];
+        allPanels.forEach(panelId => {
+          const panel = document.getElementById(panelId);
+          if (panel) panel.hidden = true;
+        });
+        
+        // Show routes panel and activate its action
+        routesPanel.hidden = false;
+        
+        // Remove active from all actions
+        const allActions = ['action-routes', 'action-tools', 'action-layers'];
+        allActions.forEach(actionId => {
+          const action = document.getElementById(actionId);
+          if (action) action.active = false;
+        });
+        
+        routesAction.active = true;
+      }
+    });
+  }
+}
+
+initializeCollapseButtons();
+
 console.log('✅ Application ready');
 
 // Export for debugging

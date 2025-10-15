@@ -31,6 +31,17 @@ calcite-shell-panel {
   --calcite-shell-panel-width: 400px;
 }
 
+/* Ensure collapse buttons are visible */
+calcite-shell-panel::part(action-bar) {
+  background: white;
+}
+
+calcite-shell-panel::part(collapse-toggle) {
+  background: #0079c1;
+  color: white;
+  border-radius: 4px;
+}
+
 /* Map and app container */
 #app {
   flex: 1;
