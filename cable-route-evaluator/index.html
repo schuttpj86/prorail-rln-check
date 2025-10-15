@@ -157,6 +157,32 @@
                 <span>Export All</span>
               </button>
               
+              <!-- Generate Comparative Report Button -->
+              <button id="generate-report-btn" 
+                onclick="exportComparativeReport()"
+                style="
+                padding: 8px 12px;
+                font-size: 0.8125rem; 
+                font-weight: 500;
+                color: white; 
+                background: #2196f3;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-shrink: 0;
+                white-space: nowrap;
+              "
+              onmouseover="this.style.background='#1976d2';"
+              onmouseout="this.style.background='#2196f3';"
+              title="Generate professional comparative evaluation report for all routes (Markdown)">
+                <span style="font-size: 0.9rem;">📄</span>
+                <span>Report</span>
+              </button>
+              
               <!-- Route Counter - Inline with flex -->
               <div style="
                 font-size: 0.75rem;

@@ -92,6 +92,11 @@ import {
   createRouteGeometry,
   calculateImportedRouteLength
 } from "./utils/routeImporter.js";
+import {
+  generateRouteReport,
+  generateComparativeReport,
+  downloadMarkdownReport
+} from "./utils/reportExporter.js";
 import "./style.css";
 
 // Configure ArcGIS API Key
@@ -854,6 +859,14 @@ function addRouteToList(routeData) {
                 onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'"
                 title="Export route as JSON file">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8.5 1h-1v7.5H4l4 4.5 4-4.5H8.5V1z"/><path d="M14 11v3H2v-3H1v3c0 .6.4 1 1 1h12c.6 0 1-.4 1-1v-3h-1z"/></svg>
+        </button>
+        <button id="report-btn-${routeId}" 
+                onclick="exportRouteReport('${routeId}'); event.stopPropagation();" 
+                style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 4px; display: flex; align-items: center; justify-content: center; color: #666; transition: all 0.2s; border-radius: 4px; width: 28px; height: 28px;"
+                onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#000'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'"
+                title="Export professional evaluation report (Markdown)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2V2zm1 1v10h10V3H3z"/><path d="M4 5h8v1H4V5zm0 2h8v1H4V7zm0 2h5v1H4V9z"/></svg>
         </button>
         <button id="collapse-toggle-${routeId}" 
                 onclick="toggleRouteCollapse('${routeId}'); event.stopPropagation();"
@@ -2525,6 +2538,127 @@ window.exportAllRoutesJSON = function() {
   } catch (error) {
     console.error('Failed to export routes:', error);
     alert(`Failed to export routes: ${error.message}`);
+  }
+};
+
+/**
+ * Export route evaluation report as Markdown
+ */
+window.exportRouteReport = function(routeId, options = {}) {
+  console.log(`📄 Generating professional report for route ${routeId}`);
+  
+  const { drawingManager } = window.app;
+  const route = drawingManager.getRoute(routeId);
+  
+  if (!route) {
+    console.error('Route not found:', routeId);
+    alert('Route not found');
+    return;
+  }
+
+  // Check if route has been evaluated
+  if (!route.compliance || !route.compliance.rules) {
+    alert('Please evaluate the route before generating a report. Click the evaluate button first.');
+    return;
+  }
+
+  try {
+    // Generate the report
+    const reportContent = generateRouteReport(route, {
+      projectName: options.projectName || 'High Voltage Connection Route',
+      projectNumber: options.projectNumber || '',
+      authorName: options.authorName || '',
+      organizationName: options.organizationName || 'ProRail',
+      includeAppendices: true
+    });
+    
+    // Generate filename
+    const routeName = route.name || `Route-${route.id}`;
+    const safeName = routeName.replace(/[^a-zA-Z0-9-_]/g, '-');
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `ProRail-EMC-Report-${safeName}-${timestamp}.md`;
+    
+    // Download the report
+    downloadMarkdownReport(reportContent, filename);
+    
+    // Show success feedback
+    const button = event?.target;
+    if (button) {
+      const originalText = button.innerHTML;
+      button.innerHTML = '✅ Exported!';
+      button.style.background = '#4caf50';
+      button.style.color = 'white';
+      
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.style.background = '';
+        button.style.color = '';
+      }, 2000);
+    }
+    
+    console.log(`✅ Report exported: ${filename}`);
+    
+    // Show info to user
+    setTimeout(() => {
+      alert(`✅ Report exported as Markdown file.\n\nFilename: ${filename}\n\nYou can open this file with any Markdown editor or convert it to PDF using tools like Pandoc or online converters.`);
+    }, 100);
+    
+  } catch (error) {
+    console.error('Failed to generate report:', error);
+    alert(`Failed to generate report: ${error.message}`);
+  }
+};
+
+/**
+ * Export comparative report for all routes
+ */
+window.exportComparativeReport = function(options = {}) {
+  console.log('📊 Generating comparative report for all routes');
+  
+  const { drawingManager } = window.app;
+  
+  if (!drawingManager || !drawingManager.routes || drawingManager.routes.size === 0) {
+    alert('No routes available to export');
+    return;
+  }
+
+  // Convert routes Map to Array
+  const routes = Array.from(drawingManager.routes.values());
+  
+  // Check if any routes have been evaluated
+  const evaluatedRoutes = routes.filter(r => r.compliance && r.compliance.rules);
+  
+  if (evaluatedRoutes.length === 0) {
+    alert('Please evaluate at least one route before generating a comparative report.');
+    return;
+  }
+
+  try {
+    // Generate the comparative report
+    const reportContent = generateComparativeReport(routes, {
+      projectName: options.projectName || 'High Voltage Connection Route Evaluation',
+      projectNumber: options.projectNumber || '',
+      authorName: options.authorName || '',
+      organizationName: options.organizationName || 'ProRail'
+    });
+    
+    // Generate filename
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `ProRail-Comparative-Report-${timestamp}.md`;
+    
+    // Download the report
+    downloadMarkdownReport(reportContent, filename);
+    
+    console.log(`✅ Comparative report exported: ${filename}`);
+    
+    // Show info to user
+    setTimeout(() => {
+      alert(`✅ Comparative report exported for ${routes.length} routes.\n\nFilename: ${filename}\n\nThis report includes evaluations for ${evaluatedRoutes.length} of ${routes.length} routes.\n\nYou can convert this Markdown file to PDF using tools like Pandoc.`);
+    }, 100);
+    
+  } catch (error) {
+    console.error('Failed to generate comparative report:', error);
+    alert(`Failed to generate comparative report: ${error.message}`);
   }
 };
 
