@@ -28,6 +28,7 @@ import Expand from "@arcgis/core/widgets/Expand";
 import LayerList from "@arcgis/core/widgets/LayerList";
 import esriConfig from "@arcgis/core/config";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
+import * as projection from "@arcgis/core/geometry/projection.js";
 import * as projectOperator from "@arcgis/core/geometry/operators/projectOperator.js";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference";
 import Graphic from "@arcgis/core/Graphic";
@@ -46,6 +47,7 @@ import {
 } from "./layers/layerConfig.js";
 import { createFeatureLayersWithHandling } from "./layers/layerFactory.js";
 import { EnhancedDrawingManager } from "./utils/EnhancedDrawingManager.js";
+import { getNextRouteColor } from "./utils/drawingUtils.js";
 import { getCurrentLanguage, setCurrentLanguage, t, updateTranslations } from "./i18n/translations.js";
 import { evaluateRoute } from "./utils/emcEvaluator.js";
 import { 
@@ -76,6 +78,20 @@ import {
   clearPointsForRoute,
   resnapPointsToRoute
 } from "./utils/assetPointManager.js";
+import {
+  exportRouteToJSON,
+  exportAllRoutesToJSON,
+  exportAndDownloadRoute,
+  exportAndDownloadAllRoutes,
+  generateRouteSummary
+} from "./utils/routeExporter.js";
+import {
+  importRoutes,
+  readJSONFile,
+  validateImportData,
+  createRouteGeometry,
+  calculateImportedRouteLength
+} from "./utils/routeImporter.js";
 import "./style.css";
 
 // Configure ArcGIS API Key
@@ -624,6 +640,29 @@ function initializeMap() {
       loadingIndicator.style.display = 'none';
     }
     
+    // Set up coordinate display widget
+    const coordX = document.getElementById('coord-x');
+    const coordY = document.getElementById('coord-y');
+    
+    if (coordX && coordY) {
+      // Projection engine is already loaded at app startup
+      view.on('pointer-move', (event) => {
+        const point = view.toMap({ x: event.x, y: event.y });
+        if (point) {
+          // Convert to RD/Rijksdriehoek coordinates (EPSG:28992)
+          const rdSpatialRef = new SpatialReference({ wkid: 28992 });
+          const rdPoint = projectOperator.execute(point, rdSpatialRef);
+          
+          if (rdPoint) {
+            coordX.textContent = rdPoint.x.toFixed(2);
+            coordY.textContent = rdPoint.y.toFixed(2);
+          }
+        }
+      });
+      
+      console.log('✅ Coordinate display widget initialized');
+    }
+    
     console.log('📐 View spatial reference:', view.spatialReference.wkid);
     console.log('📍 View center:', `Lon: ${view.center.longitude.toFixed(4)}, Lat: ${view.center.latitude.toFixed(4)}`);
     console.log('🔍 View zoom:', view.zoom);
@@ -775,7 +814,7 @@ function addRouteToList(routeData) {
   routeItem.className = 'route-item';
   routeItem.id = `route-${routeId}`;
   routeItem.innerHTML = `
-    <div class="route-header" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: white; border: 1px solid #e5e5e5; border-radius: 6px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" 
+    <div class="route-header" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: white; border: 1px solid #e5e5e5; border-radius: 6px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05); max-width: 100%; overflow: hidden;" 
          onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'; this.style.borderColor='#d0d0d0'"
          onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'; this.style.borderColor='#e5e5e5'">
       <div class="trace-indicator" 
@@ -783,9 +822,9 @@ function addRouteToList(routeData) {
            style="width: 6px; height: 36px; border-radius: 3px; background: ${currentColor}; flex-shrink: 0;"
            title="Route color">
       </div>
-      <div style="flex: 1; min-width: 0;">
-        <div style="font-weight: 600; font-size: 0.875rem; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="name-display-${routeId}" title="${routeName}">${routeName}</div>
-        <div style="font-size: 0.6875rem; color: #999; margin-top: 2px;">
+      <div style="flex: 1; min-width: 0; overflow: hidden; cursor: pointer;" onclick="zoomToRoute('${routeId}'); event.stopPropagation();" title="Click to zoom to route">
+        <div style="font-weight: 600; font-size: 0.875rem; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.2s;" id="name-display-${routeId}" onmouseover="this.style.color='#0066cc'" onmouseout="this.style.color='#1a1a1a'">${routeName}</div>
+        <div style="font-size: 0.6875rem; color: #999; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
           <span id="route-length-${routeId}">${routeData.length ? `${(routeData.length/1000).toFixed(2)} km` : 'Unknown'}</span>
           <span style="margin: 0 4px; color: #ddd;">•</span>
           <span id="route-points-${routeId}">${routeData.points || 0} pts</span>
@@ -807,6 +846,14 @@ function addRouteToList(routeData) {
                 onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'"
                 title="Evaluate route and view results on right panel">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button id="export-btn-${routeId}" 
+                onclick="exportRouteJSON('${routeId}'); event.stopPropagation();" 
+                style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 4px; display: flex; align-items: center; justify-content: center; color: #666; transition: all 0.2s; border-radius: 4px; width: 28px; height: 28px;"
+                onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#000'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'"
+                title="Export route as JSON file">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8.5 1h-1v7.5H4l4 4.5 4-4.5H8.5V1z"/><path d="M14 11v3H2v-3H1v3c0 .6.4 1 1 1h12c.6 0 1-.4 1-1v-3h-1z"/></svg>
         </button>
         <button id="collapse-toggle-${routeId}" 
                 onclick="toggleRouteCollapse('${routeId}'); event.stopPropagation();"
@@ -986,6 +1033,14 @@ function addRouteToList(routeData) {
                 onmouseout="this.style.background='white'; this.style.borderColor='#e0e0e0'"
                 title="Change color">
           🎨 Style
+        </button>
+        <button onclick="exportRouteJSON('${routeId}'); event.stopPropagation();" 
+                class="route-action-btn" 
+                style="grid-column: span 2; background: white; color: #1a1a1a; padding: 10px; border-radius: 6px; border: 1px solid #e0e0e0; font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: all 0.2s;" 
+                onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#000'"
+                onmouseout="this.style.background='white'; this.style.borderColor='#e0e0e0'"
+                title="Export route as JSON file">
+          💾 Export JSON
         </button>
       </div>
       
@@ -1381,11 +1436,30 @@ function renderEvaluationReports(focusRouteId = null) {
     }
   }
 
-  routes.sort((a, b) => {
-    const nameA = (a.name || a.id || '').toLocaleLowerCase('nl-NL');
-    const nameB = (b.name || b.id || '').toLocaleLowerCase('nl-NL');
-    return nameA.localeCompare(nameB);
-  });
+  // Sort routes to match the order in the routes panel (newest first, matching DOM order)
+  // Routes are prepended in the DOM, so we reverse the array to match that order
+  const routesContainer = document.getElementById('routes');
+  if (routesContainer) {
+    const domOrder = Array.from(routesContainer.children).map(el => {
+      const match = el.id?.match(/^route-(.+)$/);
+      return match ? match[1] : null;
+    }).filter(Boolean);
+    
+    // Sort routes array to match DOM order
+    routes.sort((a, b) => {
+      const indexA = domOrder.indexOf(a.id);
+      const indexB = domOrder.indexOf(b.id);
+      // If both found in DOM, use DOM order
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      // If only one found, prioritize the one in DOM
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      // If neither found, maintain current order
+      return 0;
+    });
+  }
 
   const activeRouteId = drawingManager.activeRouteId || null;
 
@@ -2095,28 +2169,6 @@ function setupUI(drawingManager) {
     });
   }
   
-  // Drawing buttons in bottom widget
-  const startBtnBottom = document.getElementById('start-drawing-bottom');
-  const cancelBtnBottom = document.getElementById('cancel-drawing-bottom');
-  
-  if (startBtnBottom) {
-    startBtnBottom.addEventListener('click', () => {
-      console.log('🖊️ Starting new route drawing...');
-      drawingManager.startDrawing();
-      startBtnBottom.disabled = true;
-      cancelBtnBottom.disabled = false;
-    });
-  }
-  
-  if (cancelBtnBottom) {
-    cancelBtnBottom.addEventListener('click', () => {
-      console.log('❌ Cancelling drawing...');
-      drawingManager.cancelDrawing();
-      startBtnBottom.disabled = false;
-      cancelBtnBottom.disabled = true;
-    });
-  }
-  
   // Measurement tool buttons
   // Measurement Widget Setup
   const measurementWidget = document.getElementById('measurement-widget');
@@ -2167,7 +2219,7 @@ function setupUI(drawingManager) {
         startMeasurementBtn.textContent = 'Finish';
         startMeasurementBtn.classList.add('active');
         if (measurementStatus) {
-          measurementStatus.textContent = 'Click to measure • Double-click to end';
+          measurementStatus.textContent = 'Click to measure • Right-click to finish';
         }
       }
     });
@@ -2351,6 +2403,273 @@ function updateVisibilityButtonTexts() {
     updateVisibilityButton(routeId, isVisible);
   });
 }
+
+/**
+ * Zoom to a specific route on the map
+ */
+window.zoomToRoute = function(routeId) {
+  console.log(`🔍 Zooming to route ${routeId}`);
+  
+  const { drawingManager, view } = window.app;
+  
+  if (!view) {
+    console.warn('Map view not available');
+    return;
+  }
+  
+  const route = drawingManager?.getRoute(routeId);
+  
+  if (!route) {
+    console.warn('Route not found:', routeId);
+    return;
+  }
+  
+  const geometry = route.geometry || route.graphic?.geometry;
+  
+  if (!geometry) {
+    console.warn('Route geometry not found:', routeId);
+    return;
+  }
+  
+  // Zoom to the route geometry with some padding
+  view.goTo({
+    target: geometry,
+    zoom: view.zoom // Keep current zoom level, just center on route
+  }, {
+    duration: 800, // Smooth animation
+    easing: "ease-in-out"
+  }).then(() => {
+    console.log(`✅ Zoomed to route ${routeId}`);
+    
+    // Optional: Flash the route to indicate which one we zoomed to
+    if (route.graphic) {
+      const originalSymbol = route.graphic.symbol.clone();
+      const flashSymbol = originalSymbol.clone();
+      flashSymbol.width = 6;
+      
+      // Flash effect
+      route.graphic.symbol = flashSymbol;
+      setTimeout(() => {
+        if (route.graphic) {
+          route.graphic.symbol = originalSymbol;
+        }
+      }, 500);
+    }
+  }).catch(error => {
+    console.error('Failed to zoom to route:', error);
+  });
+};
+
+/**
+ * Export a route to JSON file
+ */
+window.exportRouteJSON = function(routeId) {
+  console.log(`💾 Exporting route ${routeId} to JSON`);
+  
+  const { drawingManager } = window.app;
+  const route = drawingManager.getRoute(routeId);
+  
+  if (!route) {
+    console.error('Route not found:', routeId);
+    alert('Route not found');
+    return;
+  }
+  
+  try {
+    // Use the export utility function
+    const success = exportAndDownloadRoute(route);
+    
+    if (success) {
+      // Show success feedback
+      const button = event?.target;
+      if (button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '✅ Exported!';
+        button.style.background = '#4caf50';
+        button.style.color = 'white';
+        
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.style.background = '';
+          button.style.color = '';
+        }, 2000);
+      }
+      
+      console.log(`✅ Route ${routeId} exported successfully`);
+    }
+  } catch (error) {
+    console.error('Failed to export route:', error);
+    alert(`Failed to export route: ${error.message}`);
+  }
+};
+
+/**
+ * Export all routes to a single JSON file
+ */
+window.exportAllRoutesJSON = function() {
+  console.log('💾 Exporting all routes to JSON');
+  
+  const { drawingManager } = window.app;
+  
+  if (!drawingManager || !drawingManager.routes || drawingManager.routes.size === 0) {
+    alert('No routes available to export');
+    return;
+  }
+  
+  try {
+    const success = exportAndDownloadAllRoutes(drawingManager.routes);
+    
+    if (success) {
+      console.log(`✅ All routes exported successfully (${drawingManager.routes.size} routes)`);
+    }
+  } catch (error) {
+    console.error('Failed to export routes:', error);
+    alert(`Failed to export routes: ${error.message}`);
+  }
+};
+
+/**
+ * Handle file import from file input
+ */
+window.handleImportFile = async function(event) {
+  const file = event.target.files[0];
+  
+  if (!file) {
+    return;
+  }
+  
+  console.log('📂 Importing file:', file.name);
+  
+  const { drawingManager, cableRoutesLayer, view } = window.app;
+  
+  if (!drawingManager) {
+    alert('Application not ready. Please try again.');
+    return;
+  }
+  
+  try {
+    // Read and parse JSON file
+    const jsonData = await readJSONFile(file);
+    
+    // Validate and import routes
+    const importedRoutes = importRoutes(jsonData);
+    
+    console.log(`📥 Processing ${importedRoutes.length} imported route(s)`);
+    
+    // Create routes in the application
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const routeData of importedRoutes) {
+      try {
+        // Create the route using the drawing manager's internal method
+        await createRouteFromImport(routeData);
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to create route "${routeData.name}":`, error);
+        failCount++;
+      }
+    }
+    
+    // Show summary
+    let message = `Import complete!\n\n`;
+    message += `✅ Successfully imported: ${successCount} route(s)`;
+    if (failCount > 0) {
+      message += `\n❌ Failed: ${failCount} route(s)`;
+    }
+    
+    alert(message);
+    
+    // Reset file input
+    event.target.value = '';
+    
+  } catch (error) {
+    console.error('❌ Import failed:', error);
+    alert(`Import failed: ${error.message}`);
+    event.target.value = '';
+  }
+};
+
+/**
+ * Create a route from imported data
+ */
+async function createRouteFromImport(importedRoute) {
+  const { drawingManager, cableRoutesLayer } = window.app;
+  
+  console.log(`🔨 Creating route: ${importedRoute.name}`);
+  
+  // Calculate route length
+  const length = calculateImportedRouteLength(importedRoute.coordinates);
+  
+  // Generate new route ID (don't use imported ID to avoid conflicts)
+  const routeId = `route-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  
+  // Create polyline geometry
+  const polyline = createRouteGeometry(
+    importedRoute.coordinates,
+    importedRoute.spatialReference
+  );
+  
+  // Determine route color - use imported color if provided, otherwise get next from palette
+  const routeColor = importedRoute.color || getNextRouteColor();
+  
+  // Create the graphic
+  const routeGraphic = new Graphic({
+    geometry: polyline,
+    symbol: {
+      type: "simple-line",
+      color: routeColor,
+      width: 3,
+      cap: "round",
+      join: "round"
+    },
+    attributes: {
+      routeId: routeId,
+      name: importedRoute.name,
+      length: length,
+      created: new Date().toISOString()
+    }
+  });
+  
+  // Add to map
+  cableRoutesLayer.add(routeGraphic);
+  
+  // Store route data in drawing manager
+  const route = {
+    id: routeId,
+    name: importedRoute.name,
+    description: importedRoute.description,
+    graphic: routeGraphic,
+    geometry: polyline, // Add geometry directly to route object for EMC evaluator
+    points: importedRoute.coordinates.length,
+    length: length,
+    color: routeColor,
+    visible: importedRoute.visible !== false,
+    created: new Date().toISOString(),
+    metadata: {
+      ...importedRoute.metadata
+    },
+    originalId: importedRoute.originalId, // Preserve if available
+    importInfo: importedRoute.importInfo // Preserve if available
+  };
+  
+  drawingManager.routes.set(routeId, route);
+  
+  // Add to UI
+  const routeData = {
+    id: routeId,
+    name: importedRoute.name,
+    length: length,
+    points: importedRoute.coordinates.length,
+    created: new Date().toISOString()
+  };
+  
+  addRouteToList(routeData);
+  
+  console.log(`✅ Route created: ${importedRoute.name} (${(length/1000).toFixed(2)} km)`);
+  
+  return routeId;
+};
 
 /**
  * Toggle joint marking mode for a route
@@ -2979,11 +3298,41 @@ function initializeCollapseButtons() {
   
   // Handle right panel collapse
   if (collapseRight && rightPanel) {
+    const reopenResultsBtn = document.getElementById('reopen-results-btn');
+    
+    // Function to update button visibility
+    const updateReopenButtonVisibility = () => {
+      if (reopenResultsBtn) {
+        reopenResultsBtn.style.display = rightPanel.collapsed ? 'flex' : 'none';
+      }
+    };
+    
+    // Initial state
+    updateReopenButtonVisibility();
+    
+    // Handle collapse button click
     collapseRight.addEventListener('click', () => {
       rightPanel.collapsed = !rightPanel.collapsed;
       // Update icon
       collapseRight.icon = rightPanel.collapsed ? 'chevron-left' : 'chevron-right';
+      // Update reopen button visibility
+      updateReopenButtonVisibility();
     });
+    
+    // Handle reopen button click
+    if (reopenResultsBtn) {
+      reopenResultsBtn.addEventListener('click', () => {
+        rightPanel.collapsed = false;
+        collapseRight.icon = 'chevron-right';
+        updateReopenButtonVisibility();
+      });
+    }
+    
+    // Listen for panel state changes (when programmatically opened by evaluation)
+    const observer = new MutationObserver(() => {
+      updateReopenButtonVisibility();
+    });
+    observer.observe(rightPanel, { attributes: true, attributeFilter: ['collapsed'] });
   }
 }
 
@@ -3005,10 +3354,8 @@ function updateRouteCounter() {
 const createRouteBtn = document.getElementById('no-routes-message');
 if (createRouteBtn) {
   createRouteBtn.addEventListener('click', () => {
-    const startDrawingBtn = document.getElementById('start-drawing-bottom');
-    if (startDrawingBtn) {
-      startDrawingBtn.click();
-    }
+    console.log('🖊️ Starting new route drawing from Routes panel...');
+    drawingManager.startDrawing();
   });
 }
 

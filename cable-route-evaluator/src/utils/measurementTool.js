@@ -104,16 +104,20 @@ function createDistanceLabel(point1, point2, distance, isTemporary = false) {
     geometry: midpoint,
     symbol: {
       type: "text",
-      color: isTemporary ? [138, 43, 226, 0.8] : [106, 27, 178, 1], // Purple/Deep purple for visibility
+      color: isTemporary ? [138, 43, 226, 0.9] : [255, 255, 255, 1], // White text for segments
       text: formatDistance(distance),
       font: {
-        size: 12,
+        size: isTemporary ? 11 : 13,
         family: "Arial",
         weight: "bold"
       },
-      haloColor: [255, 255, 255, 0.95],
-      haloSize: 3,
-      yoffset: -10
+      backgroundColor: isTemporary ? [138, 43, 226, 0.3] : [138, 43, 226, 0.85], // Purple background
+      borderLineColor: [255, 255, 255, 0.9],
+      borderLineSize: 1,
+      haloColor: [0, 0, 0, 0.5],
+      haloSize: 1,
+      yoffset: -15,
+      horizontalAlignment: "center"
     },
     attributes: {
       type: "measurement-label",
@@ -146,6 +150,39 @@ function createTotalLabel(point, totalDistance) {
     attributes: {
       type: "measurement-total",
       totalDistance: totalDistance
+    }
+  });
+}
+
+/**
+ * Create cumulative distance label (shown during drawing)
+ * Large, prominent label with background for high visibility
+ */
+function createCumulativeLabel(point, cumulativeDistance) {
+  return new Graphic({
+    geometry: point,
+    symbol: {
+      type: "text",
+      color: [0, 0, 0, 1], // Black text for maximum contrast
+      text: `📏 ${formatDistance(cumulativeDistance)}`,
+      font: {
+        size: 18,
+        family: "Arial",
+        weight: "bold"
+      },
+      backgroundColor: [255, 255, 0, 0.95], // Bright yellow background
+      borderLineColor: [0, 0, 0, 1], // Black border
+      borderLineSize: 2,
+      haloColor: [255, 255, 255, 1],
+      haloSize: 2,
+      yoffset: 35, // Move well below the point
+      xoffset: 0,
+      horizontalAlignment: "center",
+      verticalAlignment: "middle"
+    },
+    attributes: {
+      type: "measurement-cumulative",
+      cumulativeDistance: cumulativeDistance
     }
   });
 }
@@ -251,11 +288,17 @@ function updateTemporarySegment(currentPoint) {
   
   const distance = Math.abs(geometryEngine.geodesicLength(line, "meters"));
   
+  // Calculate cumulative distance (existing + current segment)
+  const cumulativeDistance = calculateTotalDistance(points) + distance;
+  
+  console.log(`   📊 Cumulative distance: ${formatDistance(cumulativeDistance)}`);
+  
   const tempLine = createMeasurementLine(lastPoint, currentPoint, true);
   const tempLabel = createDistanceLabel(lastPoint, currentPoint, distance, true);
+  const cumulativeLabel = createCumulativeLabel(currentPoint, cumulativeDistance);
   
-  graphicsLayer.addMany([tempLine, tempLabel]);
-  measurementState.currentSegmentGraphics = [tempLine, tempLabel];
+  graphicsLayer.addMany([tempLine, tempLabel, cumulativeLabel]);
+  measurementState.currentSegmentGraphics = [tempLine, tempLabel, cumulativeLabel];
 }
 
 /**
@@ -321,22 +364,30 @@ export function activateMeasurementTool(view, graphicsLayer) {
   });
   
   console.log('✅ Measurement tool active - Click to add points');
-  console.log('   💡 Double-click or press ESC to finish');
+  console.log('   💡 Right-click or press ESC to finish');
   
-  // Add double-click handler to finish
-  const dblClickHandler = view.on("double-click", (event) => {
+  // Add right-click handler to finish measurement
+  const rightClickHandler = view.on("click", ["Control"], (event) => {
+    // Prevent context menu on right-click during measurement
     event.stopPropagation();
     
-    // Remove the last point (added by the click before double-click)
-    if (measurementState.points.length > 0) {
-      measurementState.points.pop();
-    }
-    
+    console.log('   ✅ Finishing measurement (right-click)');
     deactivateMeasurementTool();
   });
   
-  // Store handler to remove later
-  measurementState.dblClickHandler = dblClickHandler;
+  // Also handle actual right-click (context menu)
+  measurementState.rightClickHandler = rightClickHandler;
+  
+  // Add context menu handler to finish on right-click
+  const contextMenuHandler = view.on("pointer-down", (event) => {
+    if (event.button === 2) { // Right mouse button
+      event.stopPropagation();
+      console.log('   ✅ Finishing measurement (right-click)');
+      deactivateMeasurementTool();
+    }
+  });
+  
+  measurementState.contextMenuHandler = contextMenuHandler;
   
   return {
     finish: deactivateMeasurementTool,
@@ -365,9 +416,14 @@ export function deactivateMeasurementTool() {
     measurementState.moveHandler = null;
   }
   
-  if (measurementState.dblClickHandler) {
-    measurementState.dblClickHandler.remove();
-    measurementState.dblClickHandler = null;
+  if (measurementState.rightClickHandler) {
+    measurementState.rightClickHandler.remove();
+    measurementState.rightClickHandler = null;
+  }
+  
+  if (measurementState.contextMenuHandler) {
+    measurementState.contextMenuHandler.remove();
+    measurementState.contextMenuHandler = null;
   }
   
   // Clear temporary segment

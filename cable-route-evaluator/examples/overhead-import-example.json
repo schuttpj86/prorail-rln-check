@@ -1,0 +1,12 @@
+{
+  "routeName": "Overhead Line Section A",
+  "points": [
+    { "longitude": 5.123456, "latitude": 52.234567 },
+    { "longitude": 5.145678, "latitude": 52.245678 },
+    { "longitude": 5.167890, "latitude": 52.256789 }
+  ],
+  "infrastructureType": "overhead",
+  "voltageKv": 220,
+  "hasDoubleGuying": true,
+  "spatialReference": { "wkid": 4326 }
+}

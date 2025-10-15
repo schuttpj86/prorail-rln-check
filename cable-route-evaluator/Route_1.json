@@ -1,0 +1,92 @@
+{
+  "id": "route-1760565984115-2cnte6htv",
+  "name": "Route 1",
+  "description": "",
+  "created": "2025-10-15T22:06:24.115Z",
+  "lastModified": "2025-10-15T22:06:29.997Z",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        5.262853161740341,
+        52.13678669204662
+      ],
+      [
+        5.280448452878013,
+        52.136918394417755
+      ],
+      [
+        5.299760357785213,
+        52.13586476454554
+      ],
+      [
+        5.322505490231471,
+        52.136259878668135
+      ]
+    ],
+    "spatialReference": {
+      "wkid": 4326,
+      "latestWkid": 4326
+    }
+  },
+  "waypoints": [
+    {
+      "longitude": 5.262853161740341,
+      "latitude": 52.13678669204662,
+      "x": 5.262853161740341,
+      "y": 52.13678669204662
+    },
+    {
+      "longitude": 5.280448452878013,
+      "latitude": 52.136918394417755,
+      "x": 5.280448452878013,
+      "y": 52.136918394417755
+    },
+    {
+      "longitude": 5.299760357785213,
+      "latitude": 52.13586476454554,
+      "x": 5.299760357785213,
+      "y": 52.13586476454554
+    },
+    {
+      "longitude": 5.322505490231471,
+      "latitude": 52.136259878668135,
+      "x": 5.322505490231471,
+      "y": 52.136259878668135
+    }
+  ],
+  "measurements": {
+    "totalLength": 4090.24,
+    "totalLengthKm": "4.090",
+    "pointCount": 4,
+    "segmentCount": 3
+  },
+  "style": {
+    "color": "#2563eb",
+    "width": 3,
+    "visible": true
+  },
+  "metadata": {
+    "infrastructureType": "cable",
+    "voltageKv": 110,
+    "faultClearingTimeMs": 120,
+    "electrifiedSystem": "standard",
+    "minJointDistanceMeters": null,
+    "hasDoubleGuying": null,
+    "hasBoredCrossing": null,
+    "hasIsolatedNeutral": null,
+    "notes": ""
+  },
+  "attributes": {
+    "routeId": "route-1760565984115-2cnte6htv",
+    "name": "Route 1",
+    "length": 4090.24,
+    "created": "2025-10-15T22:06:24.115Z"
+  },
+  "exportInfo": {
+    "version": "1.0.0",
+    "exportDate": "2025-10-15T22:06:29.997Z",
+    "application": "ProRail Cable Route Evaluator",
+    "schema": "prorail-route-v1"
+  }
+}

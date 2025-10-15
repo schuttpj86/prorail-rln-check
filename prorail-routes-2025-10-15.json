@@ -1,0 +1,255 @@
+{
+  "exportInfo": {
+    "version": "1.0.0",
+    "exportDate": "2025-10-15T22:03:47.854Z",
+    "application": "ProRail Cable Route Evaluator",
+    "schema": "prorail-routes-collection-v1",
+    "routeCount": 2
+  },
+  "routes": [
+    {
+      "id": "route-1760565792369-unh4wdcpg",
+      "name": "Route 1",
+      "description": "",
+      "created": "2025-10-15T22:03:12.369Z",
+      "lastModified": "2025-10-15T22:03:47.855Z",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            5.28001929943563,
+            52.13915727514938
+          ],
+          [
+            5.311562077450724,
+            52.14337133359918
+          ],
+          [
+            5.322934643673854,
+            52.140342519389655
+          ],
+          [
+            5.35104419414989,
+            52.14165942044271
+          ],
+          [
+            5.3523316544770365,
+            52.13467940115006
+          ],
+          [
+            5.350829617428699,
+            52.12071608097336
+          ],
+          [
+            5.358554379391579,
+            52.11004304718519
+          ],
+          [
+            5.374003903317339,
+            52.10688017605579
+          ],
+          [
+            5.3797974747895,
+            52.10832985317243
+          ]
+        ],
+        "spatialReference": {
+          "wkid": 4326,
+          "latestWkid": 4326
+        }
+      },
+      "waypoints": [
+        {
+          "longitude": 5.28001929943563,
+          "latitude": 52.13915727514938,
+          "x": 5.28001929943563,
+          "y": 52.13915727514938
+        },
+        {
+          "longitude": 5.311562077450724,
+          "latitude": 52.14337133359918,
+          "x": 5.311562077450724,
+          "y": 52.14337133359918
+        },
+        {
+          "longitude": 5.322934643673854,
+          "latitude": 52.140342519389655,
+          "x": 5.322934643673854,
+          "y": 52.140342519389655
+        },
+        {
+          "longitude": 5.35104419414989,
+          "latitude": 52.14165942044271,
+          "x": 5.35104419414989,
+          "y": 52.14165942044271
+        },
+        {
+          "longitude": 5.3523316544770365,
+          "latitude": 52.13467940115006,
+          "x": 5.3523316544770365,
+          "y": 52.13467940115006
+        },
+        {
+          "longitude": 5.350829617428699,
+          "latitude": 52.12071608097336,
+          "x": 5.350829617428699,
+          "y": 52.12071608097336
+        },
+        {
+          "longitude": 5.358554379391579,
+          "latitude": 52.11004304718519,
+          "x": 5.358554379391579,
+          "y": 52.11004304718519
+        },
+        {
+          "longitude": 5.374003903317339,
+          "latitude": 52.10688017605579,
+          "x": 5.374003903317339,
+          "y": 52.10688017605579
+        },
+        {
+          "longitude": 5.3797974747895,
+          "latitude": 52.10832985317243,
+          "x": 5.3797974747895,
+          "y": 52.10832985317243
+        }
+      ],
+      "measurements": {
+        "totalLength": 10170.98,
+        "totalLengthKm": "10.171",
+        "pointCount": 9,
+        "segmentCount": 8
+      },
+      "style": {
+        "color": "#2563eb",
+        "width": 3,
+        "visible": true
+      },
+      "metadata": {
+        "infrastructureType": "cable",
+        "voltageKv": 110,
+        "faultClearingTimeMs": 120,
+        "electrifiedSystem": "standard",
+        "minJointDistanceMeters": null,
+        "hasDoubleGuying": null,
+        "hasBoredCrossing": null,
+        "hasIsolatedNeutral": null,
+        "notes": ""
+      },
+      "attributes": {
+        "routeId": "route-1760565792369-unh4wdcpg",
+        "name": "Route 1",
+        "length": 10170.98,
+        "created": "2025-10-15T22:03:12.369Z"
+      },
+      "exportInfo": {
+        "version": "1.0.0",
+        "exportDate": "2025-10-15T22:03:47.855Z",
+        "application": "ProRail Cable Route Evaluator",
+        "schema": "prorail-route-v1"
+      }
+    },
+    {
+      "id": "route-1760565823346-p3deze63x",
+      "name": "Route 2",
+      "description": "",
+      "created": "2025-10-15T22:03:43.346Z",
+      "lastModified": "2025-10-15T22:03:47.855Z",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            5.270577923703221,
+            52.12493188400242
+          ],
+          [
+            5.280663029599203,
+            52.12980590913612
+          ],
+          [
+            5.299545781064022,
+            52.13151827788979
+          ],
+          [
+            5.320574299740751,
+            52.121506574418284
+          ],
+          [
+            5.324651257443382,
+            52.10147641886179
+          ]
+        ],
+        "spatialReference": {
+          "wkid": 4326,
+          "latestWkid": 4326
+        }
+      },
+      "waypoints": [
+        {
+          "longitude": 5.270577923703221,
+          "latitude": 52.12493188400242,
+          "x": 5.270577923703221,
+          "y": 52.12493188400242
+        },
+        {
+          "longitude": 5.280663029599203,
+          "latitude": 52.12980590913612,
+          "x": 5.280663029599203,
+          "y": 52.12980590913612
+        },
+        {
+          "longitude": 5.299545781064022,
+          "latitude": 52.13151827788979,
+          "x": 5.299545781064022,
+          "y": 52.13151827788979
+        },
+        {
+          "longitude": 5.320574299740751,
+          "latitude": 52.121506574418284,
+          "x": 5.320574299740751,
+          "y": 52.121506574418284
+        },
+        {
+          "longitude": 5.324651257443382,
+          "latitude": 52.10147641886179,
+          "x": 5.324651257443382,
+          "y": 52.10147641886179
+        }
+      ],
+      "measurements": {
+        "totalLength": 6252.03,
+        "totalLengthKm": "6.252",
+        "pointCount": 5,
+        "segmentCount": 4
+      },
+      "style": {
+        "color": "#16a34a",
+        "width": 3,
+        "visible": true
+      },
+      "metadata": {
+        "infrastructureType": "cable",
+        "voltageKv": 110,
+        "faultClearingTimeMs": 120,
+        "electrifiedSystem": "standard",
+        "minJointDistanceMeters": null,
+        "hasDoubleGuying": null,
+        "hasBoredCrossing": null,
+        "hasIsolatedNeutral": null,
+        "notes": ""
+      },
+      "attributes": {
+        "routeId": "route-1760565823346-p3deze63x",
+        "name": "Route 2",
+        "length": 6252.03,
+        "created": "2025-10-15T22:03:43.346Z"
+      },
+      "exportInfo": {
+        "version": "1.0.0",
+        "exportDate": "2025-10-15T22:03:47.855Z",
+        "application": "ProRail Cable Route Evaluator",
+        "schema": "prorail-route-v1"
+      }
+    }
+  ]
+}

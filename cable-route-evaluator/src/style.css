@@ -799,26 +799,27 @@ label span {
 
 .measurement-btn {
   flex: 1;
-  padding: 5px 8px;
+  padding: 8px 12px;
   border: none;
-  border-radius: 4px;
-  font-size: 0.625rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  transition: all 0.15s ease;
+  letter-spacing: 0.02em;
 }
 
 .measurement-btn-primary {
-  background: linear-gradient(135deg, #8a2be2 0%, #6a1bb2 100%);
+  background: #1a1a1a;
   color: white;
-  box-shadow: 0 1px 4px rgba(138, 43, 226, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .measurement-btn-primary:hover {
-  background: linear-gradient(135deg, #9b3df3 0%, #7b2bc3 100%);
-  box-shadow: 0 2px 6px rgba(138, 43, 226, 0.4);
+  background: #000;
   transform: translateY(-1px);
 }
 
@@ -827,20 +828,21 @@ label span {
 }
 
 .measurement-btn-primary.active {
-  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
-  box-shadow: 0 1px 4px rgba(46, 125, 50, 0.3);
+  background: #2e7d32;
 }
 
 .measurement-btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #1a1a1a;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .measurement-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.3);
+  background: #000;
+  transform: translateY(-1px);
 }
 
 .measurement-btn:disabled {

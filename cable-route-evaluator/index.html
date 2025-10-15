@@ -73,8 +73,8 @@
           id="panel-routes">
             
           <!-- Compact Create Route Button with Counter -->
-          <div id="routeList" class="panel-content-inner" style="padding: 16px 16px;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+          <div id="routeList" class="panel-content-inner" style="padding: 16px 16px; overflow-x: hidden;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
               <!-- Create Route Button - More Compact -->
               <button id="no-routes-message" style="
                 padding: 8px 12px;
@@ -90,6 +90,7 @@
                 align-items: center;
                 gap: 6px;
                 flex-shrink: 0;
+                white-space: nowrap;
               "
               onmouseover="this.style.background='#000';"
               onmouseout="this.style.background='#1a1a1a';">
@@ -97,17 +98,78 @@
                 <span data-i18n="clickToCreateRoute">Route</span>
               </button>
               
-              <!-- Route Counter - Inline -->
+              <!-- Import Route Button -->
+              <button id="import-route-btn" 
+                onclick="document.getElementById('import-file-input').click()"
+                style="
+                padding: 8px 12px;
+                font-size: 0.8125rem; 
+                font-weight: 500;
+                color: #1a1a1a; 
+                background: white;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-shrink: 0;
+                white-space: nowrap;
+              "
+              onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#000';"
+              onmouseout="this.style.background='white'; this.style.borderColor='#e0e0e0';"
+              title="Import route(s) from JSON file">
+                <span style="font-size: 0.9rem;">📂</span>
+                <span>Import</span>
+              </button>
+              
+              <!-- Hidden file input -->
+              <input type="file" 
+                     id="import-file-input" 
+                     accept=".json,application/json"
+                     style="display: none;"
+                     onchange="handleImportFile(event)" />
+              
+              <!-- Export All Routes Button -->
+              <button id="export-all-routes-btn" 
+                onclick="exportAllRoutesJSON()"
+                style="
+                padding: 8px 12px;
+                font-size: 0.8125rem; 
+                font-weight: 500;
+                color: #1a1a1a; 
+                background: white;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-shrink: 0;
+                white-space: nowrap;
+              "
+              onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#000';"
+              onmouseout="this.style.background='white'; this.style.borderColor='#e0e0e0';"
+              title="Export all routes to a single JSON file">
+                <span style="font-size: 0.9rem;">💾</span>
+                <span>Export All</span>
+              </button>
+              
+              <!-- Route Counter - Inline with flex -->
               <div style="
                 font-size: 0.75rem;
                 color: #999;
                 font-weight: 500;
+                flex-shrink: 0;
+                white-space: nowrap;
               ">
                 <span id="route-count-text">0 routes</span>
               </div>
             </div>
             
-            <div id="routes" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            <div id="routes" style="display: flex; flex-direction: column; gap: 8px; overflow-x: hidden;"></div>
           </div>
         </calcite-panel>
 
@@ -117,29 +179,17 @@
           id="panel-tools"
           hidden>
           <div class="panel-content-inner" style="padding: 20px;">
-            <!-- Create Route Section -->
-            <div class="tool-section">
-              <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 12px; color: #000;">Drawing Tools</h3>
-              <button id="start-drawing-bottom" class="measurement-btn measurement-btn-primary" title="Start drawing a new cable route" style="width: 100%; margin-bottom: 8px;">
-                ➕ Create New Route
-              </button>
-              <button id="cancel-drawing-bottom" class="measurement-btn measurement-btn-secondary" disabled title="Cancel current drawing" style="width: 100%;">
-                Cancel Drawing
-              </button>
-            </div>
-            
-            <!-- Divider -->
-            <div style="border-top: 1px solid #e5e5e5; margin: 20px 0;"></div>
-            
             <!-- Measurement Section -->
             <div class="tool-section">
               <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 12px; color: #000;">Measurement Tool</h3>
-              <div id="measurement-status" class="measurement-status" style="margin-bottom: 12px;"></div>
-              <button id="start-measurement" class="measurement-btn measurement-btn-primary" title="Click to measure distances" style="width: 100%; margin-bottom: 8px;">
+              <div id="measurement-status" class="measurement-status" style="margin-bottom: 12px;">
+                Click "Measure Distance" to start measuring
+              </div>
+              <button id="start-measurement" class="measurement-btn measurement-btn-primary" title="Click to add points, right-click to finish" style="width: 100%; margin-bottom: 8px;">
                 📏 Measure Distance
               </button>
-              <button id="clear-measurement" class="measurement-btn measurement-btn-secondary" title="Clear all measurements" style="width: 100%;">
-                Clear Measurements
+              <button id="clear-measurement" class="measurement-btn measurement-btn-secondary" title="Clear all measurements from the map" style="width: 100%;">
+                🧹 Clear Measurements
               </button>
             </div>
           </div>
@@ -161,6 +211,59 @@
       <!-- Map Container -->
       <div id="app" style="display: flex; height: 100%; width: 100%; flex: 1;">
         <div id="viewDiv" style="width: 100%; height: 100%; position: relative;">
+        
+        <!-- Floating button to reopen results panel when collapsed -->
+        <button id="reopen-results-btn" style="
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          z-index: 100;
+          background: white;
+          border: 1px solid #e5e5e5;
+          border-radius: 6px;
+          padding: 10px;
+          cursor: pointer;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          color: #1a1a1a;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          transition: all 0.2s ease;
+          width: 40px;
+          height: 40px;
+        "
+        onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'; this.style.transform='translateY(-1px)'; this.style.background='#f8f9fa'"
+        onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'; this.style.transform='translateY(0)'; this.style.background='white'"
+        title="Open evaluation results panel">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 2h12v12H2V2zm2 2v8h8V4H4zm1 1h6v1H5V5zm0 2h6v1H5V7zm0 2h4v1H5V9z"/>
+          </svg>
+        </button>
+        
+        <!-- Coordinate Display Widget (bottom center) -->
+        <div id="coordinate-display" style="
+          position: absolute;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid #e5e5e5;
+          border-radius: 6px;
+          padding: 8px 16px;
+          z-index: 100;
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #333;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          font-family: 'Courier New', monospace;
+          white-space: nowrap;
+        ">
+          <span style="color: #666; margin-right: 12px;">X:</span>
+          <span id="coord-x" style="color: #000; min-width: 80px; display: inline-block;">-</span>
+          <span style="color: #666; margin: 0 12px 0 16px;">Y:</span>
+          <span id="coord-y" style="color: #000; min-width: 80px; display: inline-block;">-</span>
+        </div>
+        
         <!-- Welcome Message -->
         <div id="welcome-message" style="
           position: absolute;

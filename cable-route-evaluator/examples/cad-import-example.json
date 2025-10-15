@@ -1,0 +1,13 @@
+{
+  "name": "HV Connection Route - DWG Import",
+  "description": "Imported from AutoCAD DWG file",
+  "waypoints": [
+    { "x": 5.262853, "y": 52.136787 },
+    { "x": 5.280448, "y": 52.136918 },
+    { "x": 5.299760, "y": 52.135865 },
+    { "x": 5.322505, "y": 52.136260 }
+  ],
+  "type": "cable",
+  "voltage": 110,
+  "color": "#2563eb"
+}

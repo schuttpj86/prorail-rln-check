@@ -180,6 +180,22 @@ export function createRouteSymbol(status = 'drawing', customColor = null) {
       style: "solid",
       cap: "round",
       join: "round"
+    },
+    compliant: {
+      type: "simple-line",
+      color: customColor ? [...customColor.rgb, 1] : [76, 175, 80, 1], // Use custom color or green
+      width: 4,
+      style: "solid",
+      cap: "round",
+      join: "round"
+    },
+    'non-compliant': {
+      type: "simple-line",
+      color: customColor ? [...customColor.rgb, 1] : [244, 67, 54, 1], // Use custom color or red
+      width: 4,
+      style: "solid",
+      cap: "round",
+      join: "round"
     }
   };
   

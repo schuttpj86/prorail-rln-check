@@ -1,0 +1,14 @@
+{
+  "name": "High Voltage Cable Amsterdam-Utrecht",
+  "description": "Main HV cable route from substation Amsterdam to Utrecht",
+  "coordinates": [
+    [4.895168, 52.370216],
+    [4.912345, 52.365432],
+    [4.935678, 52.358901],
+    [5.023456, 52.345678],
+    [5.121345, 52.092876]
+  ],
+  "infrastructureType": "cable",
+  "voltageKv": 150,
+  "notes": "Converted from CAD polyline using custom export script"
+}
