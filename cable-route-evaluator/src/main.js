@@ -435,9 +435,11 @@ function initializeMap() {
     }, 100);
   };
 
-  // Add layer list widget (expanded by default for visibility)
+  // Add layer list widget to Layers panel
+  const layerListContainer = document.getElementById('layer-list-container');
   const layerList = new LayerList({
     view: view,
+    container: layerListContainer,
     listItemCreatedFunction: (event) => {
       const item = event.item;
       // Don't show legend for graphics layer
@@ -462,15 +464,7 @@ function initializeMap() {
     }
   });
 
-  const layerListExpand = new Expand({
-    view: view,
-    content: layerList,
-    expanded: false, // Start collapsed
-    expandTooltip: "Layer List - Toggle ProRail Layers"
-  });
-
-  view.ui.add(layerListExpand, "top-right");
-
+  // No longer need Expand widget - layer list is in panel
   layerList.on("trigger-action", (event) => {
     if (event.action.id === "zoom-to-layer") {
       const layer = event.item.layer;

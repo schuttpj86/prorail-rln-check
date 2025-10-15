@@ -87,8 +87,32 @@
           heading="Tools" 
           id="panel-tools"
           hidden>
-          <div class="panel-content-inner">
-            <p style="padding: 20px; color: #666;">Tools panel - coming soon</p>
+          <div class="panel-content-inner" style="padding: 20px;">
+            <!-- Create Route Section -->
+            <div class="tool-section">
+              <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 12px; color: #000;">Drawing Tools</h3>
+              <button id="start-drawing-bottom" class="measurement-btn measurement-btn-primary" title="Start drawing a new cable route" style="width: 100%; margin-bottom: 8px;">
+                ➕ Create New Route
+              </button>
+              <button id="cancel-drawing-bottom" class="measurement-btn measurement-btn-secondary" disabled title="Cancel current drawing" style="width: 100%;">
+                Cancel Drawing
+              </button>
+            </div>
+            
+            <!-- Divider -->
+            <div style="border-top: 1px solid #e5e5e5; margin: 20px 0;"></div>
+            
+            <!-- Measurement Section -->
+            <div class="tool-section">
+              <h3 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 12px; color: #000;">Measurement Tool</h3>
+              <div id="measurement-status" class="measurement-status" style="margin-bottom: 12px;"></div>
+              <button id="start-measurement" class="measurement-btn measurement-btn-primary" title="Click to measure distances" style="width: 100%; margin-bottom: 8px;">
+                📏 Measure Distance
+              </button>
+              <button id="clear-measurement" class="measurement-btn measurement-btn-secondary" title="Clear all measurements" style="width: 100%;">
+                Clear Measurements
+              </button>
+            </div>
           </div>
         </calcite-panel>
 
@@ -98,7 +122,8 @@
           id="panel-layers"
           hidden>
           <div class="panel-content-inner">
-            <p style="padding: 20px; color: #666;">Layers panel - coming soon</p>
+            <!-- Layer list widget will be inserted here by JavaScript -->
+            <div id="layer-list-container"></div>
           </div>
         </calcite-panel>
 
@@ -198,46 +223,6 @@
           <h3 style="margin: 0 0 12px 0; color: #000000; font-size: 1rem; font-weight: 500; letter-spacing: -0.01em;">Loading Map</h3>
           <p style="color: #666666; margin: 0; font-size: 0.875rem;">Please wait</p>
         </div>
-        
-        <!-- Measurement Widget (Bottom Right) -->
-        <div id="measurement-widget" class="measurement-widget">
-          <div class="measurement-widget-header">
-            <span class="measurement-widget-title">�️ Tools</span>
-            <button id="measurement-widget-close" class="measurement-widget-btn-icon" title="Hide widget">✕</button>
-          </div>
-          <div class="measurement-widget-content">
-            <!-- Create Route Section -->
-            <div class="measurement-widget-section">
-              <button id="start-drawing-bottom" class="measurement-btn measurement-btn-primary" title="Start drawing a new cable route">
-                ➕ Route
-              </button>
-              <button id="cancel-drawing-bottom" class="measurement-btn measurement-btn-secondary" disabled title="Cancel current drawing">
-                Cancel
-              </button>
-            </div>
-            
-            <!-- Divider -->
-            <div class="measurement-widget-divider"></div>
-            
-            <!-- Measurement Section -->
-            <div class="measurement-widget-section">
-              <div id="measurement-status" class="measurement-status"></div>
-              <div class="measurement-widget-buttons">
-                <button id="start-measurement" class="measurement-btn measurement-btn-primary" title="Click to measure distances">
-                  📏 Measure
-                </button>
-                <button id="clear-measurement" class="measurement-btn measurement-btn-secondary" title="Clear all measurements">
-                  Clear
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Measurement Widget Toggle (Minimized) -->
-        <button id="measurement-widget-toggle" class="measurement-widget-toggle" title="Open tools">
-          🛠️
-        </button>
         </div>
       </div>
 
