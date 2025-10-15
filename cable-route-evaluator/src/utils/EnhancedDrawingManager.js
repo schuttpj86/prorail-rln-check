@@ -72,6 +72,18 @@ export class EnhancedDrawingManager {
   }
 
   /**
+   * Helper method to convert hex color to RGB object
+   * @param {string} hexColor - Hex color string (e.g., '#ff0000')
+   * @returns {Object} - Object with rgb array and hex string
+   */
+  hexToRgb(hexColor) {
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    return { rgb: [r, g, b], hex: hexColor };
+  }
+
+  /**
    * Setup map click and pointer event handlers
    */
   setupEventHandlers() {
@@ -747,7 +759,9 @@ export class EnhancedDrawingManager {
         symbolKey = 'non-compliant';
       }
 
-      route.graphic.symbol = createRouteSymbol(symbolKey);
+      // Preserve the route's custom color when updating symbol
+      const customColor = route.color ? this.hexToRgb(route.color) : null;
+      route.graphic.symbol = createRouteSymbol(symbolKey, customColor);
     }
 
     route.graphic.popupTemplate = {

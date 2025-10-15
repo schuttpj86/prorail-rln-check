@@ -742,9 +742,6 @@ function addRouteToList(routeData) {
   // const noRoutesMsg = document.getElementById('no-routes-message');
   // if (noRoutesMsg) noRoutesMsg.style.display = 'none';
   
-  // Update route counter
-  updateRouteCounter();
-  
   // Prompt for route name
   let routeName = prompt('Enter a name for this route:', routeData.name);
   if (!routeName || routeName.trim() === '') {
@@ -1025,6 +1022,10 @@ function addRouteToList(routeData) {
   
   // Prepend route item (add to top of list, not bottom)
   routesContainer.insertBefore(routeItem, routesContainer.firstChild);
+  
+  // Update route counter AFTER adding to DOM
+  updateRouteCounter();
+  
   updateRouteComplianceUI(routeId);
   evaluationUIState.runningRouteIds.delete(routeId);
   ensureEvaluationErrorsMap().delete(routeId);
@@ -1093,6 +1094,9 @@ function removeRouteFromList(routeId) {
   if (routeElement) {
     routeElement.remove();
   }
+  
+  // Update route counter
+  updateRouteCounter();
   
   // Show "no routes" message if no routes remain
   const routesContainer = document.getElementById('routes');
@@ -2956,9 +2960,11 @@ initializeCollapseButtons();
 // Update route counter display
 function updateRouteCounter() {
   const routeCountText = document.getElementById('route-count-text');
-  if (routeCountText && window.app?.drawingManager) {
-    const routes = window.app.drawingManager.getAllRoutes();
-    const count = routes ? routes.size : 0;
+  if (routeCountText) {
+    // Count routes directly from DOM
+    const routesContainer = document.getElementById('routes');
+    const routeItems = routesContainer ? routesContainer.querySelectorAll('.route-item') : [];
+    const count = routeItems.length;
     routeCountText.textContent = `${count} route${count !== 1 ? 's' : ''}`;
   }
 }
