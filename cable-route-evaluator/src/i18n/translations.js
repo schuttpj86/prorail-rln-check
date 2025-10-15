@@ -26,7 +26,7 @@ export const translations = {
     selectRoute: "Select Route",
     editRoute: "Edit Route",
     noRoutesYet: "No routes yet",
-    clickToCreateRoute: "Click ➕ to create one",
+    clickToCreateRoute: "Route",
     
     // Evaluation results
     evaluationResults: "Evaluation Results",
@@ -196,7 +196,7 @@ export const translations = {
     selectRoute: "Route Selecteren",
     editRoute: "Route Bewerken",
     noRoutesYet: "Nog geen routes",
-    clickToCreateRoute: "Klik ➕ om er één te maken",
+    clickToCreateRoute: "Route",
     
     // Evaluation results
     evaluationResults: "Evaluatieresultaten",

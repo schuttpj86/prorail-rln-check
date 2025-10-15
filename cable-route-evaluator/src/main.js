@@ -775,16 +775,55 @@ function addRouteToList(routeData) {
   routeItem.className = 'route-item';
   routeItem.id = `route-${routeId}`;
   routeItem.innerHTML = `
-    <div class="route-header" style="display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; border-radius: 8px; transition: background-color 0.2s;" 
-         onclick="toggleRouteCollapse('${routeId}')"
-         onmouseover="this.style.backgroundColor='#f8f9fa'"
-         onmouseout="this.style.backgroundColor='transparent'">
+    <div class="route-header" style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: white; border: 1px solid #e5e5e5; border-radius: 6px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);" 
+         onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'; this.style.borderColor='#d0d0d0'"
+         onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'; this.style.borderColor='#e5e5e5'">
       <div class="trace-indicator" 
            id="trace-${routeId}"
-           style="width: 8px; height: 40px; border-radius: 4px; background: ${currentColor}; flex-shrink: 0;"
+           style="width: 6px; height: 36px; border-radius: 3px; background: ${currentColor}; flex-shrink: 0;"
            title="Route color">
       </div>
       <div style="flex: 1; min-width: 0;">
+        <div style="font-weight: 600; font-size: 0.875rem; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="name-display-${routeId}" title="${routeName}">${routeName}</div>
+        <div style="font-size: 0.6875rem; color: #999; margin-top: 2px;">
+          <span id="route-length-${routeId}">${routeData.length ? `${(routeData.length/1000).toFixed(2)} km` : 'Unknown'}</span>
+          <span style="margin: 0 4px; color: #ddd;">•</span>
+          <span id="route-points-${routeId}">${routeData.points || 0} pts</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+        <button id="visibility-btn-${routeId}" 
+                onclick="toggleRouteVisibility('${routeId}'); event.stopPropagation();" 
+                style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 4px; display: flex; align-items: center; justify-content: center; color: #666; transition: all 0.2s; border-radius: 4px; width: 28px; height: 28px;"
+                onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#000'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'"
+                title="Hide route">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3C4.5 3 1.7 5.6 1 8c.7 2.4 3.5 5 7 5s6.3-2.6 7-5c-.7-2.4-3.5-5-7-5zm0 8c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        </button>
+        <button id="evaluate-btn-${routeId}" 
+                onclick="evaluateRouteCompliance('${routeId}'); event.stopPropagation();" 
+                style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 4px; display: flex; align-items: center; justify-content: center; color: #666; transition: all 0.2s; border-radius: 4px; width: 28px; height: 28px;"
+                onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#000'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'"
+                title="Evaluate route and view results on right panel">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button id="collapse-toggle-${routeId}" 
+                onclick="toggleRouteCollapse('${routeId}'); event.stopPropagation();"
+                style="background: none; border: none; cursor: pointer; font-size: 0.875rem; padding: 4px; display: flex; align-items: center; justify-content: center; color: #999; transition: all 0.2s; border-radius: 4px; width: 28px; height: 28px;"
+                onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#000'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#999'"
+                title="Expand to edit route details">
+          <span id="collapse-icon-${routeId}" style="transition: transform 0.2s; display: inline-block;">▶</span>
+        </button>
+      </div>
+    </div>
+    
+    <div id="route-collapsible-${routeId}" class="route-collapsible-content" style="display: none; padding: 12px; background: #fafafa; border: 1px solid #e5e5e5; border-top: none; border-radius: 0 0 6px 6px;">
+      
+      <!-- Route Name Edit -->
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; color: #666; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; font-weight: 600;">Route Name</label>
         <input type="text" 
                id="name-${routeId}" 
                class="route-name-input"
@@ -792,33 +831,14 @@ function addRouteToList(routeData) {
                onclick="event.stopPropagation();"
                onblur="updateRouteName('${routeId}', this.value)"
                onkeypress="if(event.key === 'Enter') { this.blur(); }"
-               style="font-weight: 600; font-size: 0.9375rem; color: #1a1a1a; border: none; background: transparent; width: 100%; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; outline: none;"
-               onfocus="this.style.background='white'; this.style.boxShadow='0 0 0 2px #e0e0e0';"
-               onblur="this.style.background='transparent'; this.style.boxShadow='none'; updateRouteName('${routeId}', this.value);"
-               title="Click to edit route name" />
-        <div style="font-size: 0.75rem; color: #666; margin-top: 2px; padding-left: 8px;">
-          <span id="route-length-${routeId}">${routeData.length ? `${(routeData.length/1000).toFixed(2)} km` : 'Unknown'}</span>
-          <span style="margin: 0 6px; color: #ccc;">•</span>
-          <span id="route-points-${routeId}">${routeData.points || 0} points</span>
-        </div>
+               style="width: 100%; font-weight: 500; font-size: 0.875rem; color: #1a1a1a; border: 1px solid #e0e0e0; background: white; padding: 10px 12px; border-radius: 6px; transition: all 0.2s; outline: none;"
+               onfocus="this.style.borderColor='#000'; this.style.boxShadow='0 0 0 3px rgba(0,0,0,0.05)';"
+               onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'; updateRouteName('${routeId}', this.value);"
+               title="Edit route name" />
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <button id="visibility-btn-${routeId}" 
-                onclick="toggleRouteVisibility('${routeId}'); event.stopPropagation();" 
-                style="background: none; border: none; cursor: pointer; font-size: 1.125rem; padding: 6px; display: flex; align-items: center; justify-content: center; color: #666; transition: all 0.2s; border-radius: 4px; width: 32px; height: 32px;"
-                onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#000'"
-                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'"
-                title="${hideRouteTooltip}">
-          👁️
-        </button>
-        <span id="collapse-icon-${routeId}" style="font-size: 0.75rem; color: #999; transition: transform 0.2s; width: 16px; text-align: center;" title="Expand/Collapse">▼</span>
-      </div>
-    </div>
-    
-    <div id="route-collapsible-${routeId}" class="route-collapsible-content" style="padding: 0 12px 12px 12px;">
       
       <!-- Quick Info -->
-      <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.8125rem;">
+      <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.8125rem; border: 1px solid #e5e5e5;">
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
           <div>
             <div style="color: #999; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Created</div>
@@ -2310,10 +2330,10 @@ function updateVisibilityButton(routeId, isVisible) {
   const button = document.getElementById(`visibility-btn-${routeId}`);
   if (button) {
     if (isVisible) {
-      button.innerHTML = '👁️';
+      button.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3C4.5 3 1.7 5.6 1 8c.7 2.4 3.5 5 7 5s6.3-2.6 7-5c-.7-2.4-3.5-5-7-5zm0 8c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>';
       button.title = t('hideRouteTooltip');
     } else {
-      button.innerHTML = '👁️‍🗨️';
+      button.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.7 2.3l1.4-1.4 12 12-1.4 1.4-2-2C10.5 12.7 9.3 13 8 13c-3.5 0-6.3-2.6-7-5 .4-1.4 1.4-2.7 2.7-3.6L1.7 2.3zM8 11c-.8 0-1.5-.2-2.1-.6l1.5-1.5c.2.1.4.1.6.1 1.1 0 2-.9 2-2 0-.2 0-.4-.1-.6l1.5-1.5c.4.6.6 1.3.6 2.1 0 1.7-1.3 3-3 3zm7-3c-.4 1.4-1.4 2.7-2.7 3.6l-1.4-1.4C11.6 9.5 12 8.8 12 8c0-1.1-.9-2-2-2-.8 0-1.5.4-1.9 1.1L6.7 5.7C7.1 5.3 7.5 5 8 5c1.7 0 3 1.3 3 3h2z"/></svg>';
       button.title = t('showRouteTooltip');
     }
   }
@@ -2548,12 +2568,17 @@ function deactivateJointMarking() {
 window.toggleRouteCollapse = function(routeId) {
   const content = document.getElementById(`route-collapsible-${routeId}`);
   const icon = document.getElementById(`collapse-icon-${routeId}`);
+  const toggleBtn = document.getElementById(`collapse-toggle-${routeId}`);
   
   if (content && icon) {
     const isCollapsed = content.style.display === 'none';
     content.style.display = isCollapsed ? 'block' : 'none';
-    icon.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
-    icon.textContent = isCollapsed ? '▼' : '▶';
+    icon.style.transform = isCollapsed ? 'rotate(90deg)' : 'rotate(0deg)';
+    
+    // Update tooltip
+    if (toggleBtn) {
+      toggleBtn.title = isCollapsed ? 'Collapse route details' : 'Expand to edit route details';
+    }
   }
 };
 
@@ -2606,6 +2631,13 @@ window.updateRouteName = function(routeId, newName) {
   const graphic = route.graphic;
   if (graphic && graphic.attributes) {
     graphic.attributes.name = trimmedName;
+  }
+  
+  // Update the display name in the header
+  const nameDisplay = document.getElementById(`name-display-${routeId}`);
+  if (nameDisplay) {
+    nameDisplay.textContent = trimmedName;
+    nameDisplay.title = trimmedName;
   }
 };
 
