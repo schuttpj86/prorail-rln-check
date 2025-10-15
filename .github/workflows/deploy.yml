@@ -35,6 +35,8 @@ jobs:
         
       - name: Build
         working-directory: ./cable-route-evaluator
+        env:
+          VITE_PRORAIL_BASE_URL: https://maps.prorail.nl/arcgis/rest/services/ProRail_basiskaart/FeatureServer
         run: npm run build
         
       - name: Setup Pages
