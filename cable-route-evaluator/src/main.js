@@ -2,7 +2,7 @@
  * ProRail Cable Route Evaluator - Main Entry Point
  * 
  * This application helps cable engineers evaluate high-voltage cable routes
- * against ProRail's EMC standards (RLN00398).
+ * against ProRail's EMC standards (RLN00398, Version 002, 01-12-2020).
  */
 
 import EsriMap from "@arcgis/core/Map";
@@ -33,6 +33,12 @@ import { createFeatureLayersWithHandling } from "./layers/layerFactory.js";
 import { EnhancedDrawingManager } from "./utils/EnhancedDrawingManager.js";
 import { getCurrentLanguage, setCurrentLanguage, t, updateTranslations } from "./i18n/translations.js";
 import { evaluateRoute } from "./utils/emcEvaluator.js";
+import { 
+  activateMeasurementTool, 
+  deactivateMeasurementTool, 
+  clearMeasurement, 
+  isMeasurementActive 
+} from "./utils/measurementTool.js";
 import {
   createBuffer,
   createBufferGraphic,
@@ -323,11 +329,11 @@ function initializeMap() {
     addRouteToList(routeData);
     updateRouteCount();
     
-    // Re-enable drawing buttons
-    const startBtn = document.querySelector('#start-drawing');
-    const cancelBtn = document.querySelector('#cancel-drawing');
-    if (startBtn) startBtn.disabled = false;
-    if (cancelBtn) cancelBtn.disabled = true;
+    // Re-enable drawing buttons in bottom widget
+    const startBtnBottom = document.querySelector('#start-drawing-bottom');
+    const cancelBtnBottom = document.querySelector('#cancel-drawing-bottom');
+    if (startBtnBottom) startBtnBottom.disabled = false;
+    if (cancelBtnBottom) cancelBtnBottom.disabled = true;
     
     updateDrawingStatus(`✅ Route created: ${(routeData.length/1000).toFixed(2)} km`);
   };
@@ -909,6 +915,16 @@ function addRouteToList(routeData) {
                    onchange="updateRouteMetadataField('${routeId}', 'hasBoredCrossing', this.checked);"
                    onclick="event.stopPropagation();" />
             <span>Insulated conduit (bored crossing)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.8125rem; color: #444; padding: 6px; border-radius: 4px; transition: background 0.2s;"
+                 onmouseover="this.style.backgroundColor='#f8f9fa'"
+                 onmouseout="this.style.backgroundColor='transparent'"
+                 title="Check if HV system has isolated/floating neutral (IT earthing) where zero-sequence/homopolar current is physically impossible. Usually applies to MV cables with ungrounded systems. (RLN00398 V002, Table T4)">
+            <input type="checkbox" ${metadata.hasIsolatedNeutral ? 'checked' : ''}
+                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #000;"
+                   onchange="updateRouteMetadataField('${routeId}', 'hasIsolatedNeutral', this.checked);"
+                   onclick="event.stopPropagation();" />
+            <span>Isolated neutral (no zero-sequence current)</span>
           </label>
         </div>
       </div>
@@ -1520,7 +1536,7 @@ function normalizeMetadataValue(field, rawValue) {
   }
 
   const numericFields = ['voltageKv', 'faultClearingTimeMs', 'minJointDistanceMeters'];
-  const booleanFields = ['hasDoubleGuying', 'hasBoredCrossing'];
+  const booleanFields = ['hasDoubleGuying', 'hasBoredCrossing', 'hasIsolatedNeutral'];
 
   if (booleanFields.includes(field)) {
     return Boolean(rawValue);
@@ -2037,25 +2053,101 @@ function setupUI(drawingManager) {
     });
   }
   
-  // Drawing buttons in left panel
-  const startBtn = document.getElementById('start-drawing');
-  const cancelBtn = document.getElementById('cancel-drawing');
+  // Drawing buttons in bottom widget
+  const startBtnBottom = document.getElementById('start-drawing-bottom');
+  const cancelBtnBottom = document.getElementById('cancel-drawing-bottom');
   
-  if (startBtn) {
-    startBtn.addEventListener('click', () => {
+  if (startBtnBottom) {
+    startBtnBottom.addEventListener('click', () => {
       console.log('🖊️ Starting new route drawing...');
       drawingManager.startDrawing();
-      startBtn.disabled = true;
-      cancelBtn.disabled = false;
+      startBtnBottom.disabled = true;
+      cancelBtnBottom.disabled = false;
     });
   }
   
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', () => {
+  if (cancelBtnBottom) {
+    cancelBtnBottom.addEventListener('click', () => {
       console.log('❌ Cancelling drawing...');
       drawingManager.cancelDrawing();
-      startBtn.disabled = false;
-      cancelBtn.disabled = true;
+      startBtnBottom.disabled = false;
+      cancelBtnBottom.disabled = true;
+    });
+  }
+  
+  // Measurement tool buttons
+  // Measurement Widget Setup
+  const measurementWidget = document.getElementById('measurement-widget');
+  const measurementToggle = document.getElementById('measurement-widget-toggle');
+  const measurementClose = document.getElementById('measurement-widget-close');
+  const startMeasurementBtn = document.getElementById('start-measurement');
+  const clearMeasurementBtn = document.getElementById('clear-measurement');
+  const measurementStatus = document.getElementById('measurement-status');
+  
+  // Show/Hide Widget
+  if (measurementToggle) {
+    measurementToggle.addEventListener('click', () => {
+      if (measurementWidget) {
+        measurementWidget.classList.remove('hidden');
+        measurementToggle.classList.add('hidden');
+      }
+    });
+  }
+  
+  if (measurementClose) {
+    measurementClose.addEventListener('click', () => {
+      if (measurementWidget) {
+        measurementWidget.classList.add('hidden');
+        if (measurementToggle) {
+          measurementToggle.classList.remove('hidden');
+        }
+      }
+    });
+  }
+  
+  // Measurement Tool Functionality
+  if (startMeasurementBtn) {
+    startMeasurementBtn.addEventListener('click', () => {
+      const { view, distanceAnnotationsLayer } = window.app;
+      
+      if (isMeasurementActive()) {
+        // Stop measurement
+        deactivateMeasurementTool();
+        startMeasurementBtn.textContent = 'Start';
+        startMeasurementBtn.classList.remove('active');
+        if (measurementStatus) {
+          measurementStatus.textContent = 'Click to add points';
+        }
+      } else {
+        // Start measurement
+        console.log('📏 Starting measurement tool...');
+        activateMeasurementTool(view, distanceAnnotationsLayer);
+        startMeasurementBtn.textContent = 'Finish';
+        startMeasurementBtn.classList.add('active');
+        if (measurementStatus) {
+          measurementStatus.textContent = 'Click to measure • Double-click to end';
+        }
+      }
+    });
+  }
+  
+  if (clearMeasurementBtn) {
+    clearMeasurementBtn.addEventListener('click', () => {
+      console.log('🧹 Clearing measurements...');
+      clearMeasurement();
+      
+      // Reset measurement button if active
+      if (isMeasurementActive()) {
+        deactivateMeasurementTool();
+        if (startMeasurementBtn) {
+          startMeasurementBtn.textContent = 'Start';
+          startMeasurementBtn.classList.remove('active');
+        }
+      }
+      
+      if (measurementStatus) {
+        measurementStatus.textContent = 'Click to add points';
+      }
     });
   }
   

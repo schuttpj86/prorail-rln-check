@@ -636,13 +636,13 @@ export class EnhancedDrawingManager {
     }
     
     // Also update the drawing tools widget
-    const startBtn = document.querySelector('#start-drawing');
-    const cancelBtn = document.querySelector('#cancel-drawing');
+    const startBtnBottom = document.querySelector('#start-drawing-bottom');
+    const cancelBtnBottom = document.querySelector('#cancel-drawing-bottom');
     const finishEditBtn = document.querySelector('#finish-editing');
     const cancelEditBtn = document.querySelector('#cancel-editing');
     
-    if (startBtn) startBtn.style.display = 'none';
-    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (startBtnBottom) startBtnBottom.style.display = 'none';
+    if (cancelBtnBottom) cancelBtnBottom.style.display = 'none';
     if (finishEditBtn) finishEditBtn.style.display = 'none';
     if (cancelEditBtn) cancelEditBtn.style.display = 'none';
   }
@@ -662,18 +662,18 @@ export class EnhancedDrawingManager {
       }
     }
     
-    const startBtn = document.querySelector('#start-drawing');
-    const cancelBtn = document.querySelector('#cancel-drawing');
+    const startBtnBottom = document.querySelector('#start-drawing-bottom');
+    const cancelBtnBottom = document.querySelector('#cancel-drawing-bottom');
     const finishEditBtn = document.querySelector('#finish-editing');
     const cancelEditBtn = document.querySelector('#cancel-editing');
     
-    if (startBtn) {
-      startBtn.style.display = '';
-      startBtn.disabled = false;
+    if (startBtnBottom) {
+      startBtnBottom.style.display = '';
+      startBtnBottom.disabled = false;
     }
-    if (cancelBtn) {
-      cancelBtn.style.display = '';
-      cancelBtn.disabled = true;
+    if (cancelBtnBottom) {
+      cancelBtnBottom.style.display = '';
+      cancelBtnBottom.disabled = true;
     }
     if (finishEditBtn) finishEditBtn.style.display = 'none';
     if (cancelEditBtn) cancelEditBtn.style.display = 'none';
@@ -829,11 +829,11 @@ export class EnhancedDrawingManager {
     console.log('✅ Finished extending route:', route);
     this.updateDrawingUI(`✅ Route extended: ${formatDistance(newLength)}`);
     
-    // Reset button states
-    const startBtn = document.querySelector('#start-drawing');
-    const cancelBtn = document.querySelector('#cancel-drawing');
-    if (startBtn) startBtn.disabled = false;
-    if (cancelBtn) cancelBtn.disabled = true;
+    // Reset button states (bottom widget)
+    const startBtnBottom = document.querySelector('#start-drawing-bottom');
+    const cancelBtnBottom = document.querySelector('#cancel-drawing-bottom');
+    if (startBtnBottom) startBtnBottom.disabled = false;
+    if (cancelBtnBottom) cancelBtnBottom.disabled = true;
     
     // Notify UI
     this.onRouteUpdated(route);
@@ -1016,11 +1016,11 @@ export class EnhancedDrawingManager {
     console.log(`➡️ Extending route from ${fromEnd ? 'end' : 'start'}`);
     this.updateDrawingUI(`Extending ${route.name} from ${fromEnd ? 'END' : 'START'} - Click to add points, double-click to finish`);
     
-    // Show cancel button (extending acts like drawing, not editing)
-    const startBtn = document.querySelector('#start-drawing');
-    const cancelBtn = document.querySelector('#cancel-drawing');
-    if (startBtn) startBtn.disabled = true;
-    if (cancelBtn) cancelBtn.disabled = false;
+    // Show cancel button (extending acts like drawing, not editing) - update bottom widget
+    const startBtnBottom = document.querySelector('#start-drawing-bottom');
+    const cancelBtnBottom = document.querySelector('#cancel-drawing-bottom');
+    if (startBtnBottom) startBtnBottom.disabled = true;
+    if (cancelBtnBottom) cancelBtnBottom.disabled = false;
   }
   selectRoute(routeId) {
     // Deselect current route
