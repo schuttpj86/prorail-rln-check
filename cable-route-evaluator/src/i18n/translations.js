@@ -166,6 +166,12 @@ export const translations = {
     cancelDrawingTooltip: "Cancel current drawing",
     evaluateRouteTooltip: "Evaluate route against EMC standards",
     deleteRouteTooltip: "Delete this route",
+    hideRouteTooltip: "Hide route from map",
+    showRouteTooltip: "Show route on map",
+    
+    // Route visibility
+    hideRoute: "Hide",
+    showRoute: "Show",
   },
   
   nl: {
@@ -330,6 +336,12 @@ export const translations = {
     cancelDrawingTooltip: "Huidige tekening annuleren",
     evaluateRouteTooltip: "Route evalueren volgens EMC-normen",
     deleteRouteTooltip: "Deze route verwijderen",
+    hideRouteTooltip: "Route verbergen op de kaart",
+    showRouteTooltip: "Route tonen op de kaart",
+    
+    // Route visibility
+    hideRoute: "Verbergen",
+    showRoute: "Tonen",
   }
 };
 

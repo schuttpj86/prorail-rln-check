@@ -224,6 +224,7 @@ function initializeMap() {
   // Extract specific layers for reference (optional)
   const railwayTracksLayer = prorailFeatureLayers.find(l => l.customId === 'prorail-tracks');
   const trackSectionsLayer = prorailFeatureLayers.find(l => l.customId === 'prorail-track-sections');
+  const switchesLayer = prorailFeatureLayers.find(l => l.customId === 'prorail-switches');
   const stationsLayer = prorailFeatureLayers.find(l => l.customId === 'prorail-stations');
 
   // Create grouped layers for better organization
@@ -681,6 +682,7 @@ function initializeMap() {
     distanceAnnotationsLayer,
     railwayTracksLayer,
     trackSectionsLayer,
+    switchesLayer,
     stationsLayer
   };
 }
@@ -750,18 +752,24 @@ function addRouteToList(routeData) {
   const electrifiedSystem = metadata.electrifiedSystem || 'standard';
   const minJointValue = metadata.minJointDistanceMeters !== null && metadata.minJointDistanceMeters !== undefined ? metadata.minJointDistanceMeters : '';
   
+  // Get translations for visibility button
+  const hideRouteText = t('hideRoute');
+  const hideRouteTooltip = t('hideRouteTooltip');
+  
   const routeItem = document.createElement('div');
   routeItem.className = 'route-item';
   routeItem.id = `route-${routeId}`;
   routeItem.innerHTML = `
-    <div class="route-header" style="display: flex; align-items: center; gap: 14px; margin-bottom: 0px; cursor: pointer; padding-bottom: 16px;" 
-         onclick="toggleRouteCollapse('${routeId}')">
+    <div class="route-header" style="display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; border-radius: 8px; transition: background-color 0.2s;" 
+         onclick="toggleRouteCollapse('${routeId}')"
+         onmouseover="this.style.backgroundColor='#f8f9fa'"
+         onmouseout="this.style.backgroundColor='transparent'">
       <div class="trace-indicator" 
            id="trace-${routeId}"
-           style="width: 32px; height: 32px; border-radius: 6px; background: ${currentColor}; border: 1px solid #e5e5e5; flex-shrink: 0;"
+           style="width: 8px; height: 40px; border-radius: 4px; background: ${currentColor}; flex-shrink: 0;"
            title="Route color">
       </div>
-      <div class="route-name-wrapper" style="flex: 1; display: flex; align-items: center; gap: 8px;">
+      <div style="flex: 1; min-width: 0;">
         <input type="text" 
                id="name-${routeId}" 
                class="route-name-input"
@@ -769,158 +777,221 @@ function addRouteToList(routeData) {
                onclick="event.stopPropagation();"
                onblur="updateRouteName('${routeId}', this.value)"
                onkeypress="if(event.key === 'Enter') { this.blur(); }"
-               style="font-weight: 500; flex: 1; font-size: 1rem; color: #000000; border: 1px solid transparent; padding: 6px 10px; border-radius: 4px; background: transparent; transition: all 0.15s;"
-               onfocus="this.style.borderColor='#000000'; this.style.background='white';"
-               onblur="this.style.borderColor='transparent'; this.style.background='transparent'; updateRouteName('${routeId}', this.value);"
+               style="font-weight: 600; font-size: 0.9375rem; color: #1a1a1a; border: none; background: transparent; width: 100%; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; outline: none;"
+               onfocus="this.style.background='white'; this.style.boxShadow='0 0 0 2px #e0e0e0';"
+               onblur="this.style.background='transparent'; this.style.boxShadow='none'; updateRouteName('${routeId}', this.value);"
                title="Click to edit route name" />
-        <span style="font-size: 0.75rem; color: #999999; flex-shrink: 0;">✏️</span>
+        <div style="font-size: 0.75rem; color: #666; margin-top: 2px; padding-left: 8px;">
+          <span id="route-length-${routeId}">${routeData.length ? `${(routeData.length/1000).toFixed(2)} km` : 'Unknown'}</span>
+          <span style="margin: 0 6px; color: #ccc;">•</span>
+          <span id="route-points-${routeId}">${routeData.points || 0} points</span>
+        </div>
       </div>
-      <span id="collapse-icon-${routeId}" style="font-size: 0.875rem; color: #999999; transition: transform 0.2s;" title="Collapse/Expand">▼</span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button id="visibility-btn-${routeId}" 
+                onclick="toggleRouteVisibility('${routeId}'); event.stopPropagation();" 
+                style="background: none; border: none; cursor: pointer; font-size: 1.125rem; padding: 6px; display: flex; align-items: center; justify-content: center; color: #666; transition: all 0.2s; border-radius: 4px; width: 32px; height: 32px;"
+                onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#000'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'"
+                title="${hideRouteTooltip}">
+          👁️
+        </button>
+        <span id="collapse-icon-${routeId}" style="font-size: 0.75rem; color: #999; transition: transform 0.2s; width: 16px; text-align: center;" title="Expand/Collapse">▼</span>
+      </div>
     </div>
     
-    <div id="route-collapsible-${routeId}" class="route-collapsible-content">
-      <div class="route-details" style="font-size: 0.8125rem; color: #666666; margin-bottom: 16px;">
-        <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px 20px; line-height: 1.6;">
-          <span style="color: #999999;">Length:</span>
-          <span id="route-length-${routeId}" style="color: #000000; font-weight: 500;">${routeData.length ? `${(routeData.length/1000).toFixed(2)} km` : 'Unknown'}</span>
+    <div id="route-collapsible-${routeId}" class="route-collapsible-content" style="padding: 0 12px 12px 12px;">
+      
+      <!-- Quick Info -->
+      <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.8125rem;">
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <div>
+            <div style="color: #999; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Created</div>
+            <div style="color: #1a1a1a; font-weight: 500;">${new Date(routeData.created).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</div>
+          </div>
+          <div>
+            <div style="color: #999; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Type</div>
+            <div style="color: #1a1a1a; font-weight: 500;">${infrastructureType === 'cable' ? 'Cable' : 'Overhead'}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; color: #666; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; font-weight: 600;">Description</label>
+        <textarea id="desc-${routeId}" 
+                  class="route-desc-input"
+                  placeholder="Add a description..."
+                  style="width: 100%; min-height: 60px; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; resize: vertical; font-family: inherit; background: white; color: #1a1a1a; transition: all 0.2s; line-height: 1.5; outline: none;"
+                  onfocus="this.style.borderColor='#000'; this.style.boxShadow='0 0 0 3px rgba(0,0,0,0.05)'"
+                  onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
+                  onchange="updateRouteDescription('${routeId}', this.value)">${description}</textarea>
+      </div>
+    
+      <!-- EMC Parameters -->
+      <div style="margin-bottom: 16px;" onclick="event.stopPropagation();">
+        <div style="color: #666; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; font-weight: 600;">EMC Parameters</div>
+        <div style="display: grid; gap: 12px;">
+          <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-weight: 500; color: #444; font-size: 0.75rem;">Infrastructure type</span>
+            <select style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; background: white; color: #1a1a1a; transition: all 0.2s; outline: none; cursor: pointer;"
+                    onfocus="this.style.borderColor='#000'; this.style.boxShadow='0 0 0 3px rgba(0,0,0,0.05)'"
+                    onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
+                    onchange="updateRouteMetadataField('${routeId}', 'infrastructureType', this.value);"
+                    onclick="event.stopPropagation();">
+              <option value="cable" ${infrastructureType === 'cable' ? 'selected' : ''}>High-voltage cable</option>
+              <option value="overhead" ${infrastructureType === 'overhead' ? 'selected' : ''}>Overhead line</option>
+            </select>
+          </label>
           
-          <span style="color: #999999;">Points:</span>
-          <span id="route-points-${routeId}" style="color: #000000; font-weight: 500;">${routeData.points || 0}</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-weight: 500; color: #444; font-size: 0.75rem;">Voltage (kV)</span>
+              <input type="number" min="0" step="1" value="${voltageValue !== '' ? voltageValue : ''}"
+                     placeholder="110"
+                     style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; color: #1a1a1a; transition: all 0.2s; outline: none;"
+                     onfocus="this.style.borderColor='#000'; this.style.boxShadow='0 0 0 3px rgba(0,0,0,0.05)'"
+                     onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
+                     onchange="updateRouteMetadataField('${routeId}', 'voltageKv', this.value);"
+                     onclick="event.stopPropagation();" />
+            </label>
+            <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-weight: 500; color: #444; font-size: 0.75rem;">Clearing (ms)</span>
+              <input type="number" min="0" step="1" value="${faultClearingValue !== '' ? faultClearingValue : ''}"
+                     placeholder="100"
+                     style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; color: #1a1a1a; transition: all 0.2s; outline: none;"
+                     onfocus="this.style.borderColor='#000'; this.style.boxShadow='0 0 0 3px rgba(0,0,0,0.05)'"
+                     onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
+                     onchange="updateRouteMetadataField('${routeId}', 'faultClearingTimeMs', this.value);"
+                     onclick="event.stopPropagation();" />
+            </label>
+          </div>
           
-          <span style="color: #999999;">Created:</span>
-          <span style="color: #666666; font-size: 0.75rem;">${new Date(routeData.created).toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}</span>
+          <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-weight: 500; color: #444; font-size: 0.75rem;">Electrified system</span>
+            <select style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; background: white; color: #1a1a1a; transition: all 0.2s; outline: none; cursor: pointer;"
+                    onfocus="this.style.borderColor='#000'; this.style.boxShadow='0 0 0 3px rgba(0,0,0,0.05)'"
+                    onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
+                    onchange="updateRouteMetadataField('${routeId}', 'electrifiedSystem', this.value);"
+                    onclick="event.stopPropagation();">
+              <option value="standard" ${electrifiedSystem === 'standard' ? 'selected' : ''}>Standard</option>
+              <option value="25kv_50hz" ${electrifiedSystem === '25kv_50hz' ? 'selected' : ''}>25 kV / 50 Hz</option>
+            </select>
+          </label>
+          
+          <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-weight: 500; color: #444; font-size: 0.75rem;">Min. joint distance (m)</span>
+            <input type="number" min="0" step="1" value="${minJointValue !== '' ? minJointValue : ''}"
+                   placeholder="31"
+                   style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; color: #1a1a1a; transition: all 0.2s; outline: none;"
+                   onfocus="this.style.borderColor='#000'; this.style.boxShadow='0 0 0 3px rgba(0,0,0,0.05)'"
+                   onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
+                   onchange="updateRouteMetadataField('${routeId}', 'minJointDistanceMeters', this.value);"
+                   onclick="event.stopPropagation();" />
+          </label>
         </div>
         
-        <div class="route-description" style="margin-top: 16px;">
-          <label style="display: block; color: #999999; margin-bottom: 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500;">Description</label>
-          <textarea id="desc-${routeId}" 
-                    class="route-desc-input"
-                    placeholder="Add a description..."
-                    style="width: 100%; min-height: 70px; padding: 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 0.8125rem; resize: vertical; font-family: inherit; background: white; color: #000000; transition: border-color 0.15s; line-height: 1.5;"
-                    onfocus="this.style.borderColor='#000000';"
-                    onblur="this.style.borderColor='#e5e5e5';"
-                    onchange="updateRouteDescription('${routeId}', this.value)">${description}</textarea>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.8125rem; color: #444; padding: 6px; border-radius: 4px; transition: background 0.2s;"
+                 onmouseover="this.style.backgroundColor='#f8f9fa'"
+                 onmouseout="this.style.backgroundColor='transparent'">
+            <input type="checkbox" ${metadata.hasDoubleGuying ? 'checked' : ''}
+                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #000;"
+                   onchange="updateRouteMetadataField('${routeId}', 'hasDoubleGuying', this.checked);"
+                   onclick="event.stopPropagation();" />
+            <span>Double guying confirmed</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.8125rem; color: #444; padding: 6px; border-radius: 4px; transition: background 0.2s;"
+                 onmouseover="this.style.backgroundColor='#f8f9fa'"
+                 onmouseout="this.style.backgroundColor='transparent'">
+            <input type="checkbox" ${metadata.hasBoredCrossing ? 'checked' : ''}
+                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #000;"
+                   onchange="updateRouteMetadataField('${routeId}', 'hasBoredCrossing', this.checked);"
+                   onclick="event.stopPropagation();" />
+            <span>Insulated conduit (bored crossing)</span>
+          </label>
         </div>
       </div>
-    
-    <div class="route-metadata" style="margin-bottom: 16px;" onclick="event.stopPropagation();">
-      <div style="color: #999999; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; font-weight: 500;">EMC Inputs</div>
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <label style="font-size: 0.8125rem; color: #666666; display: flex; flex-direction: column; gap: 6px;">
-          <span style="font-weight: 500; color: #444;">Infrastructure type</span>
-          <select style="padding: 10px 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 0.875rem; background: white; color: #000; transition: border-color 0.15s;"
-                  onfocus="this.style.borderColor='#000000';"
-                  onblur="this.style.borderColor='#e5e5e5';"
-                  onchange="updateRouteMetadataField('${routeId}', 'infrastructureType', this.value);"
-                  onclick="event.stopPropagation();">
-            <option value="cable" ${infrastructureType === 'cable' ? 'selected' : ''}>High-voltage cable</option>
-            <option value="overhead" ${infrastructureType === 'overhead' ? 'selected' : ''}>Overhead line</option>
-          </select>
-        </label>
-        <label style="font-size: 0.8125rem; color: #666666; display: flex; flex-direction: column; gap: 6px;">
-          <span style="font-weight: 500; color: #444;">Nominal voltage (kV)</span>
-          <input type="number" min="0" step="1" value="${voltageValue !== '' ? voltageValue : ''}"
-                 placeholder="e.g., 110"
-                 style="padding: 10px 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 0.875rem; color: #000; transition: border-color 0.15s;"
-                 onfocus="this.style.borderColor='#000000';"
-                 onblur="this.style.borderColor='#e5e5e5';"
-                 onchange="updateRouteMetadataField('${routeId}', 'voltageKv', this.value);"
-                 onclick="event.stopPropagation();" />
-        </label>
-        <label style="font-size: 0.8125rem; color: #666666; display: flex; flex-direction: column; gap: 6px;">
-          <span style="font-weight: 500; color: #444;">Fault clearing time (ms)</span>
-          <input type="number" min="0" step="1" value="${faultClearingValue !== '' ? faultClearingValue : ''}"
-                 placeholder="≤ 100"
-                 style="padding: 10px 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 0.875rem; color: #000; transition: border-color 0.15s;"
-                 onfocus="this.style.borderColor='#000000';"
-                 onblur="this.style.borderColor='#e5e5e5';"
-                 onchange="updateRouteMetadataField('${routeId}', 'faultClearingTimeMs', this.value);"
-                 onclick="event.stopPropagation();" />
-        </label>
-        <label style="font-size: 0.8125rem; color: #666666; display: flex; flex-direction: column; gap: 6px;">
-          <span style="font-weight: 500; color: #444;">Electrified system</span>
-          <select style="padding: 10px 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 0.875rem; background: white; color: #000; transition: border-color 0.15s;"
-                  onfocus="this.style.borderColor='#000000';"
-                  onblur="this.style.borderColor='#e5e5e5';"
-                  onchange="updateRouteMetadataField('${routeId}', 'electrifiedSystem', this.value);"
-                  onclick="event.stopPropagation();">
-            <option value="standard" ${electrifiedSystem === 'standard' ? 'selected' : ''}>Standard</option>
-            <option value="25kv_50hz" ${electrifiedSystem === '25kv_50hz' ? 'selected' : ''}>25 kV / 50 Hz</option>
-          </select>
-        </label>
-        <label style="font-size: 0.8125rem; color: #666666; display: flex; flex-direction: column; gap: 6px;">
-          <span style="font-weight: 500; color: #444;">Min. joint / earthing distance to track (m)</span>
-          <input type="number" min="0" step="1" value="${minJointValue !== '' ? minJointValue : ''}"
-                 placeholder="≥ 31"
-                 style="padding: 10px 12px; border: 1px solid #e5e5e5; border-radius: 6px; font-size: 0.875rem; color: #000; transition: border-color 0.15s;"
-                 onfocus="this.style.borderColor='#000000';"
-                 onblur="this.style.borderColor='#e5e5e5';"
-                 onchange="updateRouteMetadataField('${routeId}', 'minJointDistanceMeters', this.value);"
-                 onclick="event.stopPropagation();" />
-        </label>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px; font-size: 0.8125rem; color: #444;">
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-          <input type="checkbox" ${metadata.hasDoubleGuying ? 'checked' : ''}
-                 style="width: 16px; height: 16px; cursor: pointer;"
-                 onchange="updateRouteMetadataField('${routeId}', 'hasDoubleGuying', this.checked);"
-                 onclick="event.stopPropagation();" />
-          <span>Double guying confirmed</span>
-        </label>
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-          <input type="checkbox" ${metadata.hasBoredCrossing ? 'checked' : ''}
-                 style="width: 16px; height: 16px; cursor: pointer;"
-                 onchange="updateRouteMetadataField('${routeId}', 'hasBoredCrossing', this.checked);"
-                 onclick="event.stopPropagation();" />
-          <span>Insulated conduit (bored crossing)</span>
-        </label>
-      </div>
-    </div>
 
-    <div id="route-compliance-${routeId}" class="route-compliance-panel" style="padding: 16px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; margin-bottom: 16px;"></div>
+      <!-- Compliance Panel -->
+      <div id="route-compliance-${routeId}" class="route-compliance-panel" style="margin-bottom: 16px;"></div>
 
-    <div class="route-main-actions" style="display: flex; gap: 8px; margin-bottom: 10px;">
-      <button onclick="evaluateRouteCompliance('${routeId}'); event.stopPropagation();" 
-              class="route-action-btn" 
-              style="flex: 1; background: #000000; color: white;" 
-              title="Run EMC evaluation">
-        Evaluate
-      </button>
-      <button onclick="toggleRouteEditMenu('${routeId}'); event.stopPropagation();" 
-              class="route-action-btn" 
-              style="flex: 1;" 
-              title="Show edit options">
-        Edit
-      </button>
-      <button onclick="changeRouteColor('${routeId}'); event.stopPropagation();" 
-              class="route-action-btn" 
-              title="Change trace color">
-        Style
-      </button>
+      <!-- Action Buttons -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+        <button onclick="evaluateRouteCompliance('${routeId}'); event.stopPropagation();" 
+                class="route-action-btn" 
+                style="grid-column: span 2; background: #000; color: white; padding: 12px; border-radius: 6px; border: none; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" 
+                onmouseover="this.style.background='#333'"
+                onmouseout="this.style.background='#000'"
+                title="Run EMC evaluation">
+          ⚡ Evaluate Compliance
+        </button>
+        <button onclick="toggleRouteEditMenu('${routeId}'); event.stopPropagation();" 
+                class="route-action-btn" 
+                style="background: white; color: #1a1a1a; padding: 10px; border-radius: 6px; border: 1px solid #e0e0e0; font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: all 0.2s;" 
+                onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#000'"
+                onmouseout="this.style.background='white'; this.style.borderColor='#e0e0e0'"
+                title="Edit route">
+          ✏️ Edit
+        </button>
+        <button onclick="changeRouteColor('${routeId}'); event.stopPropagation();" 
+                class="route-action-btn" 
+                style="background: white; color: #1a1a1a; padding: 10px; border-radius: 6px; border: 1px solid #e0e0e0; font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: all 0.2s;" 
+                onmouseover="this.style.background='#f8f9fa'; this.style.borderColor='#000'"
+                onmouseout="this.style.background='white'; this.style.borderColor='#e0e0e0'"
+                title="Change color">
+          🎨 Style
+        </button>
+      </div>
+      
       <button onclick="deleteRoute('${routeId}'); event.stopPropagation();" 
               class="route-action-btn route-delete" 
+              style="width: 100%; background: white; color: #dc2626; padding: 10px; border-radius: 6px; border: 1px solid #fee2e2; font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: all 0.2s;" 
+              onmouseover="this.style.background='#fef2f2'; this.style.borderColor='#dc2626'"
+              onmouseout="this.style.background='white'; this.style.borderColor='#fee2e2'"
               title="Delete this route">
-        Delete
+        🗑️ Delete Route
       </button>
-    </div>
-    
-    <div id="edit-menu-${routeId}" class="route-edit-menu" style="display: none; padding: 14px; background: #fafafa; border-radius: 6px; margin-top: 8px; border: 1px solid #e5e5e5;">
-      <div style="font-size: 0.6875rem; font-weight: 500; color: #999999; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.08em;">Edit Options</div>
-      <div style="display: flex; flex-direction: column; gap: 6px;">
-        <button onclick="editRoute('${routeId}')" class="route-action-btn" style="justify-content: flex-start;" title="Edit waypoints">
-          Edit Waypoints
-        </button>
-        <button onclick="extendRouteStart('${routeId}')" class="route-action-btn" style="justify-content: flex-start;" title="Add points to start">
-          Extend from Start
-        </button>
-        <button onclick="extendRouteEnd('${routeId}')" class="route-action-btn" style="justify-content: flex-start;" title="Add points to end">
-          Extend from End
-        </button>
-        <button id="mark-joints-btn-${routeId}" onclick="toggleJointMarking('${routeId}')" class="route-action-btn" style="justify-content: flex-start; background: #2196f3; color: white;" title="Mark joints and earthing points">
-          ⚡ Mark Joints/Earthing
-        </button>
+      
+      <!-- Edit Menu (Hidden by default) -->
+      <div id="edit-menu-${routeId}" class="route-edit-menu" style="display: none; margin-top: 12px; padding: 12px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
+        <div style="font-size: 0.6875rem; font-weight: 600; color: #666; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">Edit Options</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button onclick="editRoute('${routeId}')" 
+                  class="route-action-btn" 
+                  style="background: white; color: #1a1a1a; padding: 10px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-size: 0.8125rem; text-align: left; cursor: pointer; transition: all 0.2s;" 
+                  onmouseover="this.style.background='#fff'; this.style.borderColor='#000'"
+                  onmouseout="this.style.background='white'; this.style.borderColor='#e0e0e0'"
+                  title="Edit waypoints">
+            ✏️ Edit Waypoints
+          </button>
+          <button onclick="extendRouteStart('${routeId}')" 
+                  class="route-action-btn" 
+                  style="background: white; color: #1a1a1a; padding: 10px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-size: 0.8125rem; text-align: left; cursor: pointer; transition: all 0.2s;" 
+                  onmouseover="this.style.background='#fff'; this.style.borderColor='#000'"
+                  onmouseout="this.style.background='white'; this.style.borderColor='#e0e0e0'"
+                  title="Add points to start">
+            ⬅️ Extend from Start
+          </button>
+          <button onclick="extendRouteEnd('${routeId}')" 
+                  class="route-action-btn" 
+                  style="background: white; color: #1a1a1a; padding: 10px 12px; border-radius: 6px; border: 1px solid #e0e0e0; font-size: 0.8125rem; text-align: left; cursor: pointer; transition: all 0.2s;" 
+                  onmouseover="this.style.background='#fff'; this.style.borderColor='#000'"
+                  onmouseout="this.style.background='white'; this.style.borderColor='#e0e0e0'"
+                  title="Add points to end">
+            ➡️ Extend from End
+          </button>
+          <button id="mark-joints-btn-${routeId}" 
+                  onclick="toggleJointMarking('${routeId}')" 
+                  class="route-action-btn" 
+                  style="background: #2196f3; color: white; padding: 10px 12px; border-radius: 6px; border: none; font-size: 0.8125rem; text-align: left; cursor: pointer; transition: all 0.2s; font-weight: 500;" 
+                  onmouseover="this.style.background='#1976d2'"
+                  onmouseout="this.style.background='#2196f3'"
+                  title="Mark joints and earthing points">
+            ⚡ Mark Joints/Earthing
+          </button>
+        </div>
       </div>
-    </div>
     </div>
   `;
   
@@ -1645,47 +1716,86 @@ async function addDistanceAnnotations(routeId, evaluationResult) {
       
       if (!pointOnRoute) continue;
 
-      // Query nearby tracks (within 10km to match other spatial queries) - use geodesicBuffer for proper distance in meters
-      const searchBuffer = geometryEngine.geodesicBuffer(pointOnRoute, 10000, "meters");
+      // Project point to RD New for accurate querying
+      const pointRd = projectOperator.execute(pointOnRoute, { wkid: 28992 });
+      if (!pointRd) continue;
+
+      // Query nearby tracks (within 10km) in RD coordinates
+      const searchBuffer = geometryEngine.buffer(pointRd, 10000, "meters");
       
-      const query = railwayTracksLayer.createQuery();
-      query.geometry = searchBuffer;
-      query.spatialRelationship = "intersects";
-      query.outFields = ["*"];
-      query.returnGeometry = true;
+      // Query ALL track layers (Railway Tracks, Track Sections, Switches)
+      const { drawingManager, map, trackSectionsLayer, switchesLayer } = window.app || {};
+      const allTrackFeatures = [];
       
-      const trackResults = await railwayTracksLayer.queryFeatures(query);
+      // Query Railway Tracks layer
+      try {
+        const query1 = railwayTracksLayer.createQuery();
+        query1.geometry = searchBuffer;
+        query1.spatialRelationship = "intersects";
+        query1.outFields = ["*"];
+        query1.returnGeometry = true;
+        query1.outSpatialReference = { wkid: 28992 };
+        const results1 = await railwayTracksLayer.queryFeatures(query1);
+        allTrackFeatures.push(...results1.features);
+      } catch (err) {
+        console.warn("Failed to query railway tracks:", err);
+      }
       
-      if (trackResults.features.length === 0) {
+      // Query Track Sections layer
+      if (trackSectionsLayer) {
+        try {
+          const query2 = trackSectionsLayer.createQuery();
+          query2.geometry = searchBuffer;
+          query2.spatialRelationship = "intersects";
+          query2.outFields = ["*"];
+          query2.returnGeometry = true;
+          query2.outSpatialReference = { wkid: 28992 };
+          const results2 = await trackSectionsLayer.queryFeatures(query2);
+          allTrackFeatures.push(...results2.features);
+        } catch (err) {
+          console.warn("Failed to query track sections:", err);
+        }
+      }
+      
+      // Query Switches layer
+      if (switchesLayer) {
+        try {
+          const query3 = switchesLayer.createQuery();
+          query3.geometry = searchBuffer;
+          query3.spatialRelationship = "intersects";
+          query3.outFields = ["*"];
+          query3.returnGeometry = true;
+          query3.outSpatialReference = { wkid: 28992 };
+          const results3 = await switchesLayer.queryFeatures(query3);
+          allTrackFeatures.push(...results3.features);
+        } catch (err) {
+          console.warn("Failed to query switches:", err);
+        }
+      }
+      
+      if (allTrackFeatures.length === 0) {
         console.log(`   ⚠️ Point ${i}: No tracks found within 10km`);
         continue;
       }
 
-      // Find nearest track and calculate actual distance IN METERS using geodesic distance
+      // Find nearest track and calculate distance in RD meters
       let minDistance = Infinity;
       let nearestTrackPoint = null;
       let nearestTrackGeometry = null;
       
-      trackResults.features.forEach(trackFeature => {
-        // Find the nearest coordinate on the track
-        const nearestCoord = geometryEngine.nearestCoordinate(trackFeature.geometry, pointOnRoute);
+      allTrackFeatures.forEach(trackFeature => {
+        if (!trackFeature.geometry) return;
         
-        if (nearestCoord && nearestCoord.coordinate) {
-          // Create a line between the two points to measure geodesic distance
-          const distanceLine = new Polyline({
-            paths: [[
-              [pointOnRoute.x, pointOnRoute.y],
-              [nearestCoord.coordinate.x, nearestCoord.coordinate.y]
-            ]],
-            spatialReference: pointOnRoute.spatialReference
-          });
+        // Calculate distance in RD coordinates (meters)
+        const distance = geometryEngine.distance(pointRd, trackFeature.geometry, "meters");
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestTrackGeometry = trackFeature.geometry;
           
-          // Calculate geodesic length in meters
-          const distance = geometryEngine.geodesicLength(distanceLine, "meters");
-          
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestTrackGeometry = trackFeature.geometry;
+          // Find the nearest coordinate on the track
+          const nearestCoord = geometryEngine.nearestCoordinate(trackFeature.geometry, pointRd);
+          if (nearestCoord && nearestCoord.coordinate) {
             nearestTrackPoint = nearestCoord.coordinate;
           }
         }
@@ -1696,11 +1806,18 @@ async function addDistanceAnnotations(routeId, evaluationResult) {
         continue;
       }
 
-      // Create distance line from route point to nearest track point
+      // Adjust for track width (subtract 1.5m for half of standard track width)
+      const adjustedDistance = Math.max(0, minDistance - 1.5);
+
+      // Project points back to map view SR for display
+      const nearestTrackPointView = projectOperator.execute(nearestTrackPoint, pointOnRoute.spatialReference);
+      if (!nearestTrackPointView) continue;
+
+      // Create distance line from route point to nearest track point (in view SR)
       const distanceLine = new Polyline({
         paths: [[
           [pointOnRoute.x, pointOnRoute.y],
-          [nearestTrackPoint.x, nearestTrackPoint.y]
+          [nearestTrackPointView.x, nearestTrackPointView.y]
         ]],
         spatialReference: pointOnRoute.spatialReference
       });
@@ -1716,14 +1833,14 @@ async function addDistanceAnnotations(routeId, evaluationResult) {
         },
         attributes: {
           routeId: routeId,
-          distance: minDistance
+          distance: adjustedDistance
         }
       });
 
       // Create text label at midpoint
       const midpoint = new Point({
-        x: (pointOnRoute.x + nearestTrackPoint.x) / 2,
-        y: (pointOnRoute.y + nearestTrackPoint.y) / 2,
+        x: (pointOnRoute.x + nearestTrackPointView.x) / 2,
+        y: (pointOnRoute.y + nearestTrackPointView.y) / 2,
         spatialReference: pointOnRoute.spatialReference
       });
       
@@ -1732,7 +1849,7 @@ async function addDistanceAnnotations(routeId, evaluationResult) {
         symbol: {
           type: "text",
           color: [50, 50, 50, 1],
-          text: `${minDistance.toFixed(1)}m`,
+          text: `${adjustedDistance.toFixed(1)}m`,
           font: {
             size: 10,
             family: "Arial",
@@ -1743,7 +1860,7 @@ async function addDistanceAnnotations(routeId, evaluationResult) {
         },
         attributes: {
           routeId: routeId,
-          distance: minDistance
+          distance: adjustedDistance
         }
       });
 
@@ -1763,7 +1880,7 @@ async function addDistanceAnnotations(routeId, evaluationResult) {
 }
 
 async function evaluateRouteCompliance(routeId) {
-  const { drawingManager, map } = window.app || {};
+  const { drawingManager, map, trackSectionsLayer, switchesLayer } = window.app || {};
   if (!drawingManager) {
     console.warn('Drawing manager not available for compliance evaluation');
     return;
@@ -1806,6 +1923,8 @@ async function evaluateRouteCompliance(routeId) {
   try {
     const evaluationLayers = {
       railwayTracksLayer: drawingManager.railwayTracksLayer || null,
+      trackSectionsLayer: trackSectionsLayer || null,  // Now properly scoped from window.app
+      switchesLayer: switchesLayer || null,  // Include switches layer
       technicalRoomsLayer: resolveTechnicalRoomsLayer(map)
     };
 
@@ -1910,6 +2029,9 @@ function setupUI(drawingManager) {
       
       // Update document language
       document.documentElement.lang = newLang;
+      
+      // Update visibility button texts for all routes
+      updateVisibilityButtonTexts();
       
       console.log(`🌐 Language changed to: ${newLang.toUpperCase()}`);
     });
@@ -2018,6 +2140,85 @@ window.deleteRoute = function(routeId) {
 };
 
 /**
+ * Toggle route visibility on the map
+ */
+window.toggleRouteVisibility = function(routeId) {
+  const { drawingManager, jointsLayer, distanceAnnotationsLayer } = window.app;
+  const route = drawingManager.getRoute(routeId);
+  
+  if (!route) {
+    console.warn('Route not found:', routeId);
+    return;
+  }
+  
+  // Toggle visibility state
+  const isCurrentlyVisible = route.visible !== false; // default to true if not set
+  route.visible = !isCurrentlyVisible;
+  
+  // Update route graphic visibility
+  if (route.graphic) {
+    route.graphic.visible = route.visible;
+  }
+  
+  // Update buffer graphic visibility if it exists
+  if (route.bufferGraphic) {
+    route.bufferGraphic.visible = route.visible;
+  }
+  
+  // Update distance annotations visibility
+  if (distanceAnnotationsLayer) {
+    distanceAnnotationsLayer.graphics.forEach(g => {
+      if (g.attributes && g.attributes.routeId === routeId) {
+        g.visible = route.visible;
+      }
+    });
+  }
+  
+  // Update joint/mast markers visibility
+  if (jointsLayer) {
+    jointsLayer.graphics.forEach(g => {
+      if (g.attributes && g.attributes.routeId === routeId) {
+        g.visible = route.visible;
+      }
+    });
+  }
+  
+  // Update button text and icon
+  updateVisibilityButton(routeId, route.visible);
+  
+  console.log(`👁️ Route ${routeId} visibility toggled to:`, route.visible);
+};
+
+/**
+ * Update a single visibility button's icon and tooltip
+ */
+function updateVisibilityButton(routeId, isVisible) {
+  const button = document.getElementById(`visibility-btn-${routeId}`);
+  if (button) {
+    if (isVisible) {
+      button.innerHTML = '👁️';
+      button.title = t('hideRouteTooltip');
+    } else {
+      button.innerHTML = '👁️‍🗨️';
+      button.title = t('showRouteTooltip');
+    }
+  }
+}
+
+/**
+ * Update all visibility button texts (called when language changes)
+ */
+function updateVisibilityButtonTexts() {
+  const { drawingManager } = window.app;
+  if (!drawingManager) return;
+  
+  drawingManager.routes.forEach((route, routeId) => {
+    const isVisible = route.visible !== false;
+    updateVisibilityButton(routeId, isVisible);
+  });
+}
+
+/**
  * Toggle joint marking mode for a route
  */
 window.toggleJointMarking = async function(routeId) {
@@ -2089,14 +2290,14 @@ window.toggleJointMarking = async function(routeId) {
       let clickPoint = event.mapPoint;
       if (clickPoint.spatialReference.wkid !== 28992) {
         console.log(`   🔄 Projecting click point from ${clickPoint.spatialReference.wkid} to 28992 (RD New)...`);
-        clickPoint = projection.project(clickPoint, rdNewSR);
+        clickPoint = projectOperator.execute(clickPoint, rdNewSR);
       }
       
       // Project route geometry to RD New if needed
       let routeGeometry = routeGraphic.geometry;
       if (routeGeometry.spatialReference.wkid !== 28992) {
         console.log(`   🔄 Projecting route geometry from ${routeGeometry.spatialReference.wkid} to 28992 (RD New)...`);
-        routeGeometry = projection.project(routeGeometry, rdNewSR);
+        routeGeometry = projectOperator.execute(routeGeometry, rdNewSR);
       }
       
       const distanceToRoute = geometryEngine.distance(clickPoint, routeGeometry, "meters");
@@ -2540,13 +2741,25 @@ window.changeRouteColor = function(routeId) {
 // Initialize the application
 console.log('🚀 Initializing application...');
 
-const { map, view, drawingManager, cableRoutesLayer, jointsLayer, distanceAnnotationsLayer } = initializeMap();
+const { map, view, drawingManager, cableRoutesLayer, jointsLayer, distanceAnnotationsLayer, railwayTracksLayer, trackSectionsLayer, switchesLayer, stationsLayer } = initializeMap();
 setupUI(drawingManager);
 
 console.log('✅ Application ready');
 
 // Export for debugging
-window.app = { map, view, drawingManager, cableRoutesLayer, jointsLayer, distanceAnnotationsLayer, config };
+window.app = { 
+  map, 
+  view, 
+  drawingManager, 
+  cableRoutesLayer, 
+  jointsLayer, 
+  distanceAnnotationsLayer, 
+  railwayTracksLayer,
+  trackSectionsLayer,
+  switchesLayer,
+  stationsLayer,
+  config 
+};
 window.updateRouteMetadataField = updateRouteMetadataField;
 window.evaluateRouteCompliance = evaluateRouteCompliance;
 window.toggleEvaluationDetails = toggleEvaluationDetails;

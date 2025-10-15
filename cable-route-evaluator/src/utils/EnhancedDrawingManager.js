@@ -561,7 +561,8 @@ export class EnhancedDrawingManager {
     // Store route data with default style properties
     this.routes.set(routeId, {
       ...routeData,
-      graphic: routeGraphic
+      graphic: routeGraphic,
+      visible: true // Routes are visible by default
     });
     this.activeRouteId = routeId;
     

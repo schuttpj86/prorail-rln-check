@@ -79,6 +79,11 @@ export const config = {
       tracks: 10000,          // 10km buffer for track queries
       technicalRooms: 10000,  // 10km buffer for technical room queries
       earthing: 50            // 50m buffer for earthing point queries (kept small - needs to be close)
+    },
+    // Track geometry adjustments
+    trackWidth: {
+      standard: 3.0,          // 3m buffer around track centerline (represents physical track width + safety margin)
+      perTrack: 1.5           // ~1.5m per track (standard gauge + ballast)
     }
   },
 

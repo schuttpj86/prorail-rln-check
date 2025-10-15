@@ -8,7 +8,7 @@
  */
 
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
-import * as projection from "@arcgis/core/geometry/projection";
+import * as projectOperator from "@arcgis/core/geometry/operators/projectOperator.js";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference";
 import Point from "@arcgis/core/geometry/Point";
 import Graphic from "@arcgis/core/Graphic";
@@ -448,7 +448,7 @@ export async function resnapPointsToRoute(routeId, newRouteGeometry, tracksLayer
   }
   
   // Ensure projection engine is loaded
-  await projection.load();
+  await projectOperator.load();
   
   // Project route to RD New (28992) for accurate distance calculations
   const rdNewSR = new SpatialReference({ wkid: 28992 });
@@ -456,7 +456,7 @@ export async function resnapPointsToRoute(routeId, newRouteGeometry, tracksLayer
   
   if (newRouteGeometry.spatialReference.wkid !== 28992) {
     console.log(`   🔄 Projecting route from ${newRouteGeometry.spatialReference.wkid} to RD New (28992)...`);
-    workingGeometry = projection.project(newRouteGeometry, rdNewSR);
+    workingGeometry = projectOperator.execute(newRouteGeometry, rdNewSR);
   }
   
   const updatedPoints = [];

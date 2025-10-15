@@ -580,52 +580,160 @@ function analyzeCrossings(routeRd, trackGeometries) {
   };
 }
 
-async function fetchTrackGeometries(routeGeometry, layer) {
-  if (!layer || typeof layer.createQuery !== "function") {
+/**
+ * Fetch track geometries from all available track layers
+ * FAST VERSION - No expensive buffering
+ * 
+ * @param {Polyline} routeGeometry - Route geometry
+ * @param {Object} trackLayers - Object containing track layers
+ * @returns {Promise<Array<Geometry>>} Array of track geometries (centerlines)
+ */
+async function fetchTrackGeometries(routeGeometry, trackLayers) {
+  if (!trackLayers) {
     return [];
   }
 
   try {
+    // CRITICAL FIX: Project route to RD New FIRST, then buffer in RD coordinates
+    console.log(`   🔄 Projecting route from SR ${routeGeometry.spatialReference?.wkid || 'unknown'} to RD New (28992)...`);
+    await ensureProjectionLoaded();
+    const routeRd = projectOperator.execute(routeGeometry, RD_SPATIAL_REFERENCE);
+    
+    if (!routeRd) {
+      console.error("   ❌ Failed to project route to RD New!");
+      return [];
+    }
+    
     const bufferDistance = config.spatialQuery?.bufferDistances?.tracks ?? 10000;
-    const buffer = geometryEngine.geodesicBuffer(routeGeometry, bufferDistance, "meters");
-    const query = layer.createQuery();
-    query.geometry = buffer || routeGeometry.extent;
-    query.spatialRelationship = "intersects";
-    query.returnGeometry = true;
-    query.outFields = ["OBJECTID"];
-    query.outSpatialReference = RD_SPATIAL_REFERENCE;
-    query.num = 2000;
+    console.log(`   🔍 Creating ${bufferDistance}m buffer in RD coordinates...`);
+    const buffer = geometryEngine.buffer(routeRd, bufferDistance, "meters");  // Use planar buffer in RD
+    console.log(`   📊 Buffer created:`, buffer ? `Yes (type: ${buffer.type})` : 'FAILED - buffer is null!');
+    if (buffer && buffer.extent) {
+      console.log(`   📍 Buffer extent (RD): xmin=${buffer.extent.xmin.toFixed(0)}, ymin=${buffer.extent.ymin.toFixed(0)}, xmax=${buffer.extent.xmax.toFixed(0)}, ymax=${buffer.extent.ymax.toFixed(0)}`);
+    }
+    
+    const allGeometries = [];
 
-    const result = await layer.queryFeatures(query);
-    return (result?.features || []).map((feature) => feature.geometry).filter(Boolean);
+    // Helper function to query a single track layer
+    const queryLayer = async (layer, layerName) => {
+      if (!layer || typeof layer.createQuery !== "function") {
+        console.log(`   ⚠️ ${layerName}: Layer not available or invalid`);
+        return [];
+      }
+
+      try {
+        const query = layer.createQuery();
+        query.geometry = buffer;  // Use the RD buffer
+        query.spatialRelationship = "intersects";
+        query.returnGeometry = true;
+        query.outFields = ["OBJECTID"];
+        query.outSpatialReference = RD_SPATIAL_REFERENCE;  // Request results in RD
+        query.num = 2000;
+
+        console.log(`   🔍 Querying ${layerName}...`);
+        const result = await layer.queryFeatures(query);
+        const geometries = (result?.features || []).map((feature) => feature.geometry).filter(Boolean);
+        
+        if (geometries.length > 0) {
+          console.log(`   ✅ Fetched ${geometries.length} track geometries from ${layerName}`);
+        } else {
+          console.log(`   ⚠️ No tracks found in ${layerName}`);
+        }
+        
+        return geometries;
+      } catch (error) {
+        console.warn(`   ❌ Failed to query ${layerName}`, error);
+        return [];
+      }
+    };
+
+    // Query main tracks layer
+    if (trackLayers.railwayTracksLayer || trackLayers.tracksLayer) {
+      const layer = trackLayers.railwayTracksLayer || trackLayers.tracksLayer;
+      const geometries = await queryLayer(layer, "railway tracks");
+      allGeometries.push(...geometries);
+    }
+
+    // Query track sections layer (may contain additional tracks)
+    if (trackLayers.trackSectionsLayer) {
+      const geometries = await queryLayer(trackLayers.trackSectionsLayer, "track sections");
+      allGeometries.push(...geometries);
+    }
+
+    // Query switches layer (track connections and junctions)
+    if (trackLayers.switchesLayer) {
+      const geometries = await queryLayer(trackLayers.switchesLayer, "switches");
+      allGeometries.push(...geometries);
+    }
+
+    // NO BUFFERING - just return the centerlines
+    if (allGeometries.length > 0) {
+      console.log(`   ✅ Total track geometries: ${allGeometries.length}`);
+      return allGeometries;
+    }
+
+    return [];
   } catch (error) {
-    console.warn("Failed to query railway track features", error);
+    console.warn("Failed to fetch track geometries", error);
     return [];
   }
 }
 
-function computeMinimumDistance(routeRd, geometries) {
+/**
+ * Calculate minimum distance from route to geometries
+ * FAST VERSION - Simple geometry-to-geometry distance
+ * 
+ * @param {Polyline} routeRd - Route geometry in RD coordinates
+ * @param {Array<Geometry>} geometries - Array of geometries to check against
+ * @param {number} adjustment - Distance adjustment (e.g., for track width)
+ * @returns {number|null} Minimum distance in meters (adjusted), or null if no valid distance found
+ */
+function computeMinimumDistance(routeRd, geometries, adjustment = 1.5) {
   if (!geometries || geometries.length === 0) {
+    console.warn("⚠️ No geometries provided for distance calculation");
     return null;
   }
 
   let minDistance = Infinity;
-  for (const geometry of geometries) {
+  let closestGeometryIndex = -1;
+  let distancesUnder50m = [];
+  
+  // Simple fast distance calculation
+  for (let i = 0; i < geometries.length; i++) {
+    const geometry = geometries[i];
     if (!geometry) {
       continue;
     }
 
-    const distance = geometryEngine.distance(routeRd, geometry);
-    if (typeof distance === "number" && distance < minDistance) {
-      minDistance = distance;
+    const distance = geometryEngine.distance(routeRd, geometry, "meters");
+    if (typeof distance === "number") {
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestGeometryIndex = i;
+      }
+      // Track all features within 50m for debugging
+      if (distance < 50) {
+        distancesUnder50m.push({ index: i, distance: distance.toFixed(2), type: geometry.type });
+      }
     }
   }
 
+  if (distancesUnder50m.length > 0) {
+    console.log(`   🔍 Found ${distancesUnder50m.length} tracks within 50m:`, distancesUnder50m);
+  } else {
+    console.log(`   ⚠️ No tracks found within 50m of route!`);
+  }
+
   if (!Number.isFinite(minDistance)) {
+    console.warn("⚠️ No valid distance found");
     return null;
   }
 
-  return minDistance;
+  const adjustedDistance = Math.max(0, minDistance - adjustment);
+  console.log(`   📐 Closest track #${closestGeometryIndex}: ${minDistance.toFixed(2)}m (centerline) → ${adjustedDistance.toFixed(2)}m (adjusted for ${adjustment}m track width)`);
+
+  // Adjust for track width or other factors
+  return adjustedDistance;
 }
 
 async function computeTechnicalRoomDistance(routeGeometry, routeRd, layer) {
@@ -676,9 +784,22 @@ export async function evaluateRoute(route, options = {}) {
     throw new Error("Unable to project route geometry to RD New (EPSG:28992)");
   }
 
-  const trackGeometries = await fetchTrackGeometries(route.geometry, options.layers?.railwayTracksLayer);
+  // Fetch and buffer track geometries from all available track layers
+  console.log("🔍 Fetching track geometries...");
+  console.log(`   📐 Route geometry SR: ${route.geometry.spatialReference?.wkid || 'unknown'}`);
+  console.log(`   📏 Route extent:`, route.geometry.extent);
+  console.log(`   ⚠️ Querying: Railway Tracks (layer 6), Track Sections (layer 9), and Switches (layer 7)`);
+  const trackGeometries = await fetchTrackGeometries(route.geometry, options.layers);
+  console.log(`📊 Fetched ${trackGeometries?.length || 0} track geometries`);
+  
   const crossing = analyzeCrossings(routeRd, trackGeometries);
-  const minTrackDistance = computeMinimumDistance(routeRd, trackGeometries);
+  
+  // Use track width adjustment (1.5m = half of standard track width)
+  const trackWidthAdjustment = config.trackWidth?.perTrack ?? 1.5;
+  console.log(`📏 Computing track distance with ${trackWidthAdjustment}m adjustment...`);
+  const minTrackDistance = computeMinimumDistance(routeRd, trackGeometries, trackWidthAdjustment);
+  console.log(`✅ Minimum track distance: ${minTrackDistance !== null ? minTrackDistance.toFixed(2) + 'm' : 'null'}`);
+  
   const minTechnicalRoomDistance = await computeTechnicalRoomDistance(
     route.geometry,
     routeRd,

@@ -8,8 +8,77 @@
  */
 
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
+import Point from "@arcgis/core/geometry/Point";
 import Query from "@arcgis/core/rest/support/Query";
 import { config } from "../config.js";
+
+/**
+ * Fast calculation of minimum distance from route to features
+ * Uses optimized geometryEngine.distance without expensive sampling
+ * 
+ * @param {Polyline} routeGeometry - The cable route geometry
+ * @param {Array<Feature>} features - Array of features to check against
+ * @param {number} bufferAdjustment - Amount to subtract from distance (for track width, etc.)
+ * @returns {Object} Object containing minimum distance and nearest feature
+ */
+export function calculateMinimumDistanceToFeatures(routeGeometry, features, bufferAdjustment = 0) {
+  if (!routeGeometry || !features || features.length === 0) {
+    return null;
+  }
+
+  let minDistance = Infinity;
+  let nearestFeature = null;
+
+  try {
+    // Use fast geometry-to-geometry distance
+    for (const feature of features) {
+      const distance = geometryEngine.distance(routeGeometry, feature.geometry, "meters");
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestFeature = feature;
+      }
+    }
+    
+    // Adjust distance to account for track width or other buffer
+    if (minDistance !== Infinity && bufferAdjustment > 0) {
+      minDistance = Math.max(0, minDistance - bufferAdjustment);
+    }
+    
+    return {
+      distance: minDistance === Infinity ? null : minDistance,
+      nearestFeature: nearestFeature,
+      routePoint: null,  // Not calculated for performance
+      featurePoint: null  // Not calculated for performance
+    };
+    
+  } catch (error) {
+    console.error('❌ Error calculating minimum distance to features:', error);
+    return null;
+  }
+}
+
+/**
+ * Calculate minimum distance from a route to tracks
+ * 
+ * @param {Polyline} routeGeometry - The cable route geometry
+ * @param {Array<Feature>} trackFeatures - Array of track features to check against
+ * @param {number} trackWidthAdjustment - Track width to subtract from distance (default 1.5m)
+ * @returns {Object} Object containing minimum distance, nearest track, and closest points
+ */
+export function calculateMinimumDistanceToTracks(routeGeometry, trackFeatures, trackWidthAdjustment = 1.5) {
+  // Use the generic function with track width adjustment
+  const result = calculateMinimumDistanceToFeatures(routeGeometry, trackFeatures, trackWidthAdjustment);
+  
+  if (!result) return null;
+  
+  return {
+    distance: result.distance,
+    nearestTrack: result.nearestFeature,
+    routePoint: result.routePoint,
+    trackPoint: result.featurePoint
+  };
+}
 
 /**
  * Query technical rooms (EV Gebouwen) near a route
@@ -45,22 +114,29 @@ export async function queryTechnicalRooms(routeGeometry, technicalRoomsLayer, bu
     
     console.log(`   ✅ Found ${results.features.length} technical rooms`);
 
-    // Calculate minimum distance to route
+    // Calculate minimum distance to route using improved method
     let minDistance = null;
     let nearestFeature = null;
+    let nearestPoint = null;
+    let nearestRoomPoint = null;
 
     if (results.features.length > 0) {
       minDistance = Infinity;
       
-      results.features.forEach(feature => {
-        const distance = geometryEngine.distance(routeGeometry, feature.geometry, "meters");
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestFeature = feature;
-        }
-      });
+      // Calculate true minimum distance by sampling route points
+      const routeDistanceResult = calculateMinimumDistanceToFeatures(routeGeometry, results.features);
+      
+      if (routeDistanceResult && routeDistanceResult.distance < minDistance) {
+        minDistance = routeDistanceResult.distance;
+        nearestFeature = routeDistanceResult.nearestFeature;
+        nearestPoint = routeDistanceResult.routePoint;
+        nearestRoomPoint = routeDistanceResult.featurePoint;
+      }
 
       console.log(`   📏 Minimum distance to technical room: ${minDistance.toFixed(2)}m`);
+      if (nearestPoint && nearestRoomPoint) {
+        console.log(`   📍 Closest approach at route point (${nearestPoint.x.toFixed(1)}, ${nearestPoint.y.toFixed(1)})`);
+      }
     } else {
       console.log(`   ℹ️ No technical rooms found within ${bufferDistance}m`);
     }
@@ -69,6 +145,8 @@ export async function queryTechnicalRooms(routeGeometry, technicalRoomsLayer, bu
       features: results.features,
       minDistance: minDistance === Infinity ? null : minDistance,
       nearestFeature: nearestFeature,
+      nearestPoint: nearestPoint,
+      nearestRoomPoint: nearestRoomPoint,
       searchRadius: bufferDistance
     };
 
@@ -79,14 +157,91 @@ export async function queryTechnicalRooms(routeGeometry, technicalRoomsLayer, bu
 }
 
 /**
+ * Query ALL track-related layers (centerlines, sections, switches) near a route
+ * FAST VERSION - Queries multiple layers without expensive buffering
+ * 
+ * @param {Polyline} routeGeometry - The cable route geometry
+ * @param {Object} trackLayers - Object containing all track-related layers
+ * @param {Layer} trackLayers.tracksLayer - Main tracks layer
+ * @param {Layer} trackLayers.trackSectionsLayer - Track sections layer (optional)
+ * @param {number} bufferDistance - Search buffer distance in meters
+ * @param {number} trackWidthAdjustment - Track width to subtract from distance
+ * @returns {Promise<Object>} Query results with features from all layers and minimum distance
+ */
+export async function queryAllTrackLayers(routeGeometry, trackLayers, bufferDistance = config.spatialQuery?.bufferDistances?.tracks ?? 10000, trackWidthAdjustment = 1.5) {
+  console.log(`🛤️ Querying ALL track layers within ${bufferDistance}m of route...`);
+  
+  const allFeatures = [];
+  const layerResults = {};
+  
+  // Query main tracks layer
+  if (trackLayers.tracksLayer) {
+    try {
+      const result = await queryTrackCenterlines(routeGeometry, trackLayers.tracksLayer, bufferDistance, trackWidthAdjustment);
+      layerResults.tracks = result;
+      if (result.features) {
+        allFeatures.push(...result.features);
+      }
+    } catch (error) {
+      console.error('❌ Failed to query tracks layer:', error);
+    }
+  }
+  
+  // Query track sections layer (may have additional track segments)
+  if (trackLayers.trackSectionsLayer) {
+    try {
+      console.log(`   🔍 Also querying track sections layer...`);
+      const result = await queryTrackCenterlines(routeGeometry, trackLayers.trackSectionsLayer, bufferDistance, trackWidthAdjustment);
+      layerResults.trackSections = result;
+      if (result.features) {
+        allFeatures.push(...result.features);
+        console.log(`   ✅ Found ${result.features.length} additional track sections`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to query track sections layer:', error);
+    }
+  }
+  
+  // Calculate overall minimum distance - FAST VERSION
+  let minDistance = null;
+  let nearestFeature = null;
+  
+  if (allFeatures.length > 0) {
+    console.log(`   📊 Total track features found: ${allFeatures.length}`);
+    
+    // Calculate minimum distance across all track features - NO BUFFERING
+    const routeDistanceResult = calculateMinimumDistanceToTracks(routeGeometry, allFeatures, trackWidthAdjustment);
+    
+    if (routeDistanceResult) {
+      minDistance = routeDistanceResult.distance;
+      nearestFeature = routeDistanceResult.nearestTrack;
+      
+      console.log(`   📏 Overall minimum distance to ANY track (adjusted for ~${trackWidthAdjustment}m width): ${minDistance?.toFixed(2) ?? 'N/A'}m`);
+    }
+  } else {
+    console.log(`   ℹ️ No track features found within ${bufferDistance}m`);
+  }
+  
+  return {
+    features: allFeatures,
+    minDistance: minDistance,
+    nearestFeature: nearestFeature,
+    searchRadius: bufferDistance,
+    layerResults: layerResults
+  };
+}
+
+/**
  * Query track centerlines (Spoorbaanhartlijn) near a route
+ * FAST VERSION - No expensive buffering or sampling
  * 
  * @param {Polyline} routeGeometry - The cable route geometry
  * @param {Layer} tracksLayer - The railway tracks layer
  * @param {number} bufferDistance - Search buffer distance in meters (default from config)
+ * @param {number} trackWidthAdjustment - Track width to subtract from distance (default 1.5m)
  * @returns {Promise<Object>} Query results with features and minimum distance
  */
-export async function queryTrackCenterlines(routeGeometry, tracksLayer, bufferDistance = config.spatialQuery?.bufferDistances?.tracks ?? 10000) {
+export async function queryTrackCenterlines(routeGeometry, tracksLayer, bufferDistance = config.spatialQuery?.bufferDistances?.tracks ?? 10000, trackWidthAdjustment = 1.5) {
   console.log(`🛤️ Querying track centerlines within ${bufferDistance}m of route...`);
 
   if (!routeGeometry || !tracksLayer) {
@@ -112,29 +267,26 @@ export async function queryTrackCenterlines(routeGeometry, tracksLayer, bufferDi
     
     console.log(`   ✅ Found ${results.features.length} track segments`);
 
-    // Calculate minimum distance to route
+    // Calculate minimum distance - FAST VERSION
     let minDistance = null;
     let nearestFeature = null;
 
     if (results.features.length > 0) {
-      minDistance = Infinity;
+      const routeDistanceResult = calculateMinimumDistanceToTracks(routeGeometry, results.features, trackWidthAdjustment);
       
-      results.features.forEach(feature => {
-        const distance = geometryEngine.distance(routeGeometry, feature.geometry, "meters");
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestFeature = feature;
-        }
-      });
+      if (routeDistanceResult) {
+        minDistance = routeDistanceResult.distance;
+        nearestFeature = routeDistanceResult.nearestTrack;
+      }
 
-      console.log(`   📏 Minimum distance to track: ${minDistance.toFixed(2)}m`);
+      console.log(`   📏 Minimum distance to track (adjusted for ~${trackWidthAdjustment}m track width): ${minDistance?.toFixed(2) ?? 'N/A'}m`);
     } else {
       console.log(`   ℹ️ No tracks found within ${bufferDistance}m`);
     }
 
     return {
       features: results.features,
-      minDistance: minDistance === Infinity ? null : minDistance,
+      minDistance: minDistance,
       nearestFeature: nearestFeature,
       searchRadius: bufferDistance
     };
@@ -259,6 +411,7 @@ export function calculateEarthingToTrackDistances(earthingPoints, trackFeatures)
  * @param {Object} layers - Object containing all required layers
  * @param {Layer} layers.technicalRoomsLayer - EV Gebouwen layer
  * @param {Layer} layers.tracksLayer - Spoorbaanhartlijn layer
+ * @param {Layer} layers.trackSectionsLayer - Track sections layer (optional)
  * @param {Layer} layers.earthingLayer - Aarding layer (optional)
  * @returns {Promise<Object>} Complete analysis results
  */
@@ -289,19 +442,23 @@ export async function performCompleteSpatialAnalysis(routeGeometry, layers) {
     console.warn('⚠️ Technical rooms layer not provided');
   }
 
-  // Query tracks
-  if (layers.tracksLayer) {
+  // Query ALL track layers (centerlines + sections) - FAST VERSION
+  if (layers.tracksLayer || layers.trackSectionsLayer) {
     try {
-      results.tracks = await queryTrackCenterlines(
+      results.tracks = await queryAllTrackLayers(
         routeGeometry,
-        layers.tracksLayer
-        // Uses default buffer distance from config
+        {
+          tracksLayer: layers.tracksLayer,
+          trackSectionsLayer: layers.trackSectionsLayer
+        },
+        undefined,  // Use default buffer distance
+        1.5         // Subtract 1.5m for track width adjustment
       );
     } catch (error) {
       console.error('❌ Tracks query failed:', error);
     }
   } else {
-    console.warn('⚠️ Tracks layer not provided');
+    console.warn('⚠️ No track layers provided');
   }
 
   // Query earthing points (optional)
