@@ -1,0 +1,74 @@
+{
+  "type": "FeatureCollection",
+  "name": "CABLES_110KV",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "Layer": "CABLES_110KV",
+        "LineType": "Continuous",
+        "Color": 256,
+        "Voltage": 110,
+        "CableType": "XLPE",
+        "InstallDate": "2024-03-15"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [5.262853, 52.136787],
+          [5.265120, 52.137245],
+          [5.268450, 52.137890],
+          [5.272100, 52.138420],
+          [5.280448, 52.136918]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Layer": "CABLES_110KV",
+        "LineType": "Continuous",
+        "Color": 256,
+        "Voltage": 110,
+        "CableType": "XLPE",
+        "InstallDate": "2024-03-15"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [5.280448, 52.136918],
+          [5.285320, 52.137125],
+          [5.290180, 52.137340],
+          [5.295760, 52.136985],
+          [5.299760, 52.135865]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Layer": "CABLES_110KV",
+        "LineType": "Continuous",
+        "Color": 256,
+        "Voltage": 110,
+        "CableType": "XLPE",
+        "InstallDate": "2024-04-20"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [5.299760, 52.135865],
+          [5.305420, 52.136120],
+          [5.311280, 52.136380],
+          [5.322505, 52.136260]
+        ]
+      }
+    }
+  ]
+}

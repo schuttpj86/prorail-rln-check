@@ -6,8 +6,8 @@
 export const translations = {
   en: {
     // Application title
-    appTitle: "ProRail Cable Route Evaluator",
-    appSubtitle: "EMC Compliance Tool for High-Voltage Cable Routes",
+    appTitle: "ProRail High Voltage Connection Evaluator",
+    appSubtitle: "EMC Compliance Tool for High-Voltage Connections",
     
     // Drawing controls
     drawingControls: "Drawing Controls",
@@ -104,20 +104,47 @@ export const translations = {
     actualDistance: "Actual Distance",
     
     // Welcome message
-    welcomeTitle: "Welcome to ProRail Cable Route Evaluator",
-    welcomeDescription: "This tool helps you design and evaluate cable routes along railway infrastructure for compliance with EMC (Electromagnetic Compatibility) requirements.",
-    howToUse: "How to Use:",
-    drawingRoutesTitle: "Drawing Routes:",
-    drawingRoutesStep1: "Click the ➕ button in the top-left Routes panel",
-    drawingRoutesStep2: "Click on the map to add waypoints along your route",
-    drawingRoutesStep3: "Double-click to finish the route",
-    drawingRoutesStep4: "Hover over the ➕ button for quick tips",
-    evaluatingRoutesTitle: "Evaluating Routes:",
-    evaluatingRoutesStep1: "After drawing, routes appear in the Routes panel",
-    evaluatingRoutesStep2: "Click Evaluate to check EMC compliance",
-    evaluatingRoutesStep3: "View detailed results and distance measurements",
-    standardInfo: "Based on ProRail Standard RLN00398: EMC Requirements for High-Voltage Connections",
+    welcomeTitle: "Welcome to ProRail High Voltage Connection Evaluator",
+    welcomeIntro: "In the Netherlands, ProRail Standard RLN00398 (Version 002, 01-12-2020) is used for the evaluation of electromagnetic interference between high-voltage connections and railway infrastructure.",
+    welcomePurpose: "The initial part of this standard requires a combination of checks between the high-voltage connection and railway infrastructure. These checks determine whether more detailed electromagnetic compatibility (EMC) studies are required.",
+    welcomeScope: "This tool focuses on the preliminary evaluation phase—not detailed studies—enabling fast assessment and comparative analysis of different cable and overhead line routes.",
+    
+    welcomeCapabilitiesTitle: "Key Capabilities:",
+    welcomeCapability1: "✓ Draw routes directly on the map using the interactive interface",
+    welcomeCapability2: "✓ Import existing route geometries from CAD/GIS files (GeoJSON)",
+    welcomeCapability3: "✓ Perform automated EMC compliance checks against RLN00398 criteria",
+    welcomeCapability4: "✓ Compare multiple route alternatives side-by-side",
+    welcomeCapability5: "✓ Generate professional reports for Request for Proposal (RFP) documentation",
+    welcomeCapability6: "✓ Document design details: cable type, layout, earthing points, joint locations",
+    
+    welcomeValueTitle: "Engineering Value:",
+    welcomeValue1: "⚡ Early identification of EMC compliance issues during route planning",
+    welcomeValue2: "📊 Optimize detailed study efficiency with well-documented preliminary analysis",
+    welcomeValue3: "🤝 Facilitate collaboration between engineers, clients, and stakeholders",
+    welcomeValue4: "✅ Clear overview of which routes pass/fail criteria and what's needed to meet requirements",
+    welcomeValue5: "🛡️ Address ProRail safety concerns and permitting requirements upfront",
+    
+    howToUse: "How to Use This Tool:",
+    step1Title: "1. Create or Import Routes",
+    step1Desc: "Click ➕ in the Routes panel to draw, or import GeoJSON files from CAD systems",
+    step2Title: "2. Configure Route Details",
+    step2Desc: "Specify voltage level, cable type, installation method (underground/overhead)",
+    step3Title: "3. Evaluate Compliance",
+    step3Desc: "Click 'Evaluate' to run automated checks against RLN00398 requirements",
+    step4Title: "4. Review Results & Optimize",
+    step4Desc: "Analyze distance measurements, crossing angles, and compliance status",
+    step5Title: "5. Generate Reports",
+    step5Desc: "Export professional documentation for RFP submissions or design records",
+    
+    standardInfo: "Based on ProRail Standard RLN00398-V002 (01-12-2020): EMC Requirements for High-Voltage Connections",
     getStarted: "Get Started",
+    
+    // Version and disclaimer
+    versionInfo: "Version 1.0 BETA",
+    developedBy: "Developed by DNV",
+    confidentialityNotice: "CONFIDENTIAL & PROPRIETARY",
+    disclaimerTitle: "Important Notice:",
+    disclaimer: "This software is proprietary to DNV and is shared under strict confidentiality. This beta version is intended for evaluation and preliminary design purposes only. All results should be verified by qualified engineers before use in official submissions or construction projects.",
     
     // Infrastructure types
     infrastructureTypes: "Infrastructure Types:",
@@ -349,7 +376,10 @@ export const translations = {
  * Get current language from localStorage or default to English
  */
 export function getCurrentLanguage() {
-  return localStorage.getItem('prorail-language') || 'en';
+  // Always default to English for now
+  return 'en';
+  // Commented out to disable Dutch language switching
+  // return localStorage.getItem('prorail-language') || 'en';
 }
 
 /**

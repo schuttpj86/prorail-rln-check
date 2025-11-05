@@ -104,20 +104,16 @@ function createDistanceLabel(point1, point2, distance, isTemporary = false) {
     geometry: midpoint,
     symbol: {
       type: "text",
-      color: isTemporary ? [138, 43, 226, 0.9] : [255, 255, 255, 1], // White text for segments
+      color: isTemporary ? [138, 43, 226, 0.8] : [106, 27, 178, 1], // Purple/Deep purple for visibility
       text: formatDistance(distance),
       font: {
-        size: isTemporary ? 11 : 13,
+        size: 12,
         family: "Arial",
         weight: "bold"
       },
-      backgroundColor: isTemporary ? [138, 43, 226, 0.3] : [138, 43, 226, 0.85], // Purple background
-      borderLineColor: [255, 255, 255, 0.9],
-      borderLineSize: 1,
-      haloColor: [0, 0, 0, 0.5],
-      haloSize: 1,
-      yoffset: -15,
-      horizontalAlignment: "center"
+      haloColor: [255, 255, 255, 0.95],
+      haloSize: 3,
+      yoffset: -10
     },
     attributes: {
       type: "measurement-label",
@@ -156,29 +152,23 @@ function createTotalLabel(point, totalDistance) {
 
 /**
  * Create cumulative distance label (shown during drawing)
- * Large, prominent label with background for high visibility
  */
 function createCumulativeLabel(point, cumulativeDistance) {
   return new Graphic({
     geometry: point,
     symbol: {
       type: "text",
-      color: [0, 0, 0, 1], // Black text for maximum contrast
-      text: `📏 ${formatDistance(cumulativeDistance)}`,
+      color: [255, 0, 128, 1], // Bright pink/magenta - very visible
+      text: `Total: ${formatDistance(cumulativeDistance)}`,
       font: {
-        size: 18,
+        size: 15,
         family: "Arial",
         weight: "bold"
       },
-      backgroundColor: [255, 255, 0, 0.95], // Bright yellow background
-      borderLineColor: [0, 0, 0, 1], // Black border
-      borderLineSize: 2,
       haloColor: [255, 255, 255, 1],
-      haloSize: 2,
-      yoffset: 35, // Move well below the point
-      xoffset: 0,
-      horizontalAlignment: "center",
-      verticalAlignment: "middle"
+      haloSize: 4,
+      yoffset: 25, // Move below the point
+      xoffset: 0
     },
     attributes: {
       type: "measurement-cumulative",

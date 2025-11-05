@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="nl">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="data:;base64,=" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ProRail Cable Route Evaluator</title>
+    <title>ProRail High Voltage Connection Evaluator</title>
   </head>
   <body>
     <calcite-shell>
@@ -304,59 +304,96 @@
           max-width: 600px;
           border: 1px solid #e5e5e5;
         ">
-          <h2 style="margin: 0 0 20px 0; color: #000000; font-size: 1.5rem; font-weight: 600;" data-i18n="welcomeTitle">
-            Welcome to ProRail Cable Route Evaluator
+          <!-- Header -->
+          <h2 style="margin: 0 0 16px 0; color: #000000; font-size: 1.6rem; font-weight: 700; text-align: center;" data-i18n="welcomeTitle">
+            Welcome to ProRail High Voltage Connection Evaluator
           </h2>
           
           <div style="margin-bottom: 24px; line-height: 1.6; color: #333333;">
-            <p style="margin: 0 0 12px 0; font-size: 0.9375rem;" data-i18n="welcomeDescription">
-              This tool helps you design and evaluate cable routes along railway infrastructure for compliance with EMC (Electromagnetic Compatibility) requirements.
-            </p>
-            
-            <div style="margin: 0 0 16px 0; padding: 12px 16px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
-              <p style="margin: 0; font-size: 0.8125rem; color: #2e7d32; font-weight: 500;">
-                ✅ <span data-i18n="updatedStandard"><strong>Updated to RLN00398 Version 002 (2020)</strong> – Now includes the latest ProRail EMC requirements</span>
+            <!-- Introduction -->
+            <div style="margin: 0 0 20px 0; padding: 16px; background: #f5f5f5; border-radius: 6px;">
+              <p style="margin: 0 0 10px 0; font-size: 0.9rem;" data-i18n="welcomeIntro">
+                In the Netherlands, ProRail Standard <strong>RLN00398 (Version 002, 01-12-2020)</strong> is used for the evaluation of electromagnetic interference between high-voltage connections and railway infrastructure.
+              </p>
+              <p style="margin: 0; font-size: 0.9rem;" data-i18n="welcomePurpose">
+                The initial part of this standard requires a combination of checks between the high-voltage connection and railway infrastructure. These checks determine whether more detailed electromagnetic compatibility (EMC) studies are required.
               </p>
             </div>
             
-            <h3 style="margin: 0 0 12px 0; font-size: 1rem; font-weight: 600; color: #000000;" data-i18n="howToUse">
-              How to Use:
-            </h3>
+            <!-- Tool Scope -->
+            <div style="margin: 0 0 20px 0; padding: 12px 16px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+              <p style="margin: 0; font-size: 0.875rem; color: #0d47a1;" data-i18n="welcomeScope">
+                <strong>This tool focuses on the preliminary evaluation phase</strong>—not detailed studies—enabling fast assessment and comparative analysis of different cable and overhead line routes.
+              </p>
+            </div>
             
-            <div style="margin-bottom: 20px;">
-              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;" data-i18n="drawingRoutesTitle">
-                📍 Drawing Routes:
-              </p>
-              <ul style="margin: 0 0 12px 0; padding-left: 24px; font-size: 0.875rem; color: #555555;">
-                <li data-i18n="drawingRoutesStep1">Click the <strong>➕ button</strong> in the top-left Routes panel</li>
-                <li data-i18n="drawingRoutesStep2">Click on the map to add waypoints along your route</li>
-                <li data-i18n="drawingRoutesStep3"><strong>Double-click</strong> to finish the route</li>
-                <li data-i18n="drawingRoutesStep4">Hover over the ➕ button for quick tips</li>
-              </ul>
+            <!-- Key Capabilities -->
+            <h3 style="margin: 0 0 10px 0; font-size: 1rem; font-weight: 600; color: #000000;" data-i18n="welcomeCapabilitiesTitle">
+              Key Capabilities:
+            </h3>
+            <ul style="margin: 0 0 20px 0; padding-left: 20px; font-size: 0.85rem; color: #555555; line-height: 1.8;">
+              <li data-i18n="welcomeCapability1">✓ Draw routes directly on the map using the interactive interface</li>
+              <li data-i18n="welcomeCapability2">✓ Import existing route geometries from CAD/GIS files (GeoJSON)</li>
+              <li data-i18n="welcomeCapability3">✓ Perform automated EMC compliance checks against RLN00398 criteria</li>
+              <li data-i18n="welcomeCapability4">✓ Compare multiple route alternatives side-by-side</li>
+              <li data-i18n="welcomeCapability5">✓ Generate professional reports for Request for Proposal (RFP) documentation</li>
+              <li data-i18n="welcomeCapability6">✓ Document design details: cable type, layout, earthing points, joint locations</li>
+            </ul>
+            
+            <!-- Engineering Value -->
+            <h3 style="margin: 0 0 10px 0; font-size: 1rem; font-weight: 600; color: #000000;" data-i18n="welcomeValueTitle">
+              Engineering Value:
+            </h3>
+            <ul style="margin: 0 0 20px 0; padding-left: 20px; font-size: 0.85rem; color: #555555; line-height: 1.8;">
+              <li data-i18n="welcomeValue1">⚡ Early identification of EMC compliance issues during route planning</li>
+              <li data-i18n="welcomeValue2">📊 Optimize detailed study efficiency with well-documented preliminary analysis</li>
+              <li data-i18n="welcomeValue3">🤝 Facilitate collaboration between engineers, clients, and stakeholders</li>
+              <li data-i18n="welcomeValue4">✅ Clear overview of which routes pass/fail criteria and what's needed to meet requirements</li>
+              <li data-i18n="welcomeValue5">🛡️ Address ProRail safety concerns and permitting requirements upfront</li>
+            </ul>
+            
+            <!-- How to Use -->
+            <h3 style="margin: 0 0 10px 0; font-size: 1rem; font-weight: 600; color: #000000;" data-i18n="howToUse">
+              How to Use This Tool:
+            </h3>
+            <div style="margin-bottom: 20px; font-size: 0.85rem;">
+              <p style="margin: 0 0 6px 0;"><strong data-i18n="step1Title">1. Create or Import Routes</strong></p>
+              <p style="margin: 0 0 12px 8px; color: #666;" data-i18n="step1Desc">Click ➕ in the Routes panel to draw, or import GeoJSON files from CAD systems</p>
               
-              <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 0.875rem;" data-i18n="evaluatingRoutesTitle">
-                📊 Evaluating Routes:
-              </p>
-              <ul style="margin: 0 0 12px 0; padding-left: 24px; font-size: 0.875rem; color: #555555;">
-                <li data-i18n="evaluatingRoutesStep1">After drawing, routes appear in the Routes panel</li>
-                <li data-i18n="evaluatingRoutesStep2">Click Evaluate to check EMC compliance</li>
-                <li data-i18n="evaluatingRoutesStep3">View detailed results and distance measurements</li>
-              </ul>
+              <p style="margin: 0 0 6px 0;"><strong data-i18n="step2Title">2. Configure Route Details</strong></p>
+              <p style="margin: 0 0 12px 8px; color: #666;" data-i18n="step2Desc">Specify voltage level, cable type, installation method (underground/overhead)</p>
               
-              <p style="margin: 0 0 8px 0; font-size: 0.8125rem; color: #666666; font-style: italic;" data-i18n="standardInfo">
-                Based on ProRail Standard RLN00398, Version 002 (01-12-2020): EMC Requirements for High-Voltage Connections
+              <p style="margin: 0 0 6px 0;"><strong data-i18n="step3Title">3. Evaluate Compliance</strong></p>
+              <p style="margin: 0 0 12px 8px; color: #666;" data-i18n="step3Desc">Click 'Evaluate' to run automated checks against RLN00398 requirements</p>
+              
+              <p style="margin: 0 0 6px 0;"><strong data-i18n="step4Title">4. Review Results & Optimize</strong></p>
+              <p style="margin: 0 0 12px 8px; color: #666;" data-i18n="step4Desc">Analyze distance measurements, crossing angles, and compliance status</p>
+              
+              <p style="margin: 0 0 6px 0;"><strong data-i18n="step5Title">5. Generate Reports</strong></p>
+              <p style="margin: 0 0 12px 8px; color: #666;" data-i18n="step5Desc">Export professional documentation for RFP submissions or design records</p>
+            </div>
+            
+            <!-- Version & Disclaimer -->
+            <div style="margin: 20px 0 0 0; padding: 12px 16px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 0.75rem; font-weight: 600; color: #e65100;" data-i18n="versionInfo">Version 1.0 BETA</span>
+                <span style="font-size: 0.75rem; color: #e65100;" data-i18n="developedBy">Developed by DNV</span>
+              </div>
+              <p style="margin: 0 0 6px 0; font-size: 0.75rem; font-weight: 600; color: #e65100;" data-i18n="confidentialityNotice">CONFIDENTIAL & PROPRIETARY</p>
+              <p style="margin: 0; font-size: 0.75rem; color: #bf360c; line-height: 1.5;" data-i18n="disclaimer">
+                This software is proprietary to DNV and is shared under strict confidentiality. This beta version is intended for evaluation and preliminary design purposes only. All results should be verified by qualified engineers before use in official submissions or construction projects.
               </p>
             </div>
           </div>
           
           <button id="close-welcome" style="
             width: 100%;
-            padding: 12px 24px;
+            padding: 14px 24px;
             background: #000000;
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 0.9375rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;

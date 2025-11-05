@@ -1,0 +1,119 @@
+{
+  "source": "CAD",
+  "sourceFile": "ProRail_Project_2025.dwg",
+  "coordinateSystem": "EPSG:4326",
+  "exportedBy": "QGIS 3.34",
+  "exportDate": "2025-10-16",
+  "description": "Example multi-layer CAD import for ProRail Cable Route Evaluator",
+  "layers": [
+    {
+      "layerName": "CABLES_110KV",
+      "layerType": "cable",
+      "voltage": 110,
+      "description": "110kV high-voltage cables",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [5.262853, 52.136787],
+              [5.265120, 52.137245],
+              [5.268450, 52.137890],
+              [5.272100, 52.138420],
+              [5.280448, 52.136918]
+            ]
+          },
+          "properties": {
+            "cadLayer": "CABLES_110KV",
+            "length": 1450.5,
+            "cableType": "XLPE",
+            "id": "Cable_001"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [5.280448, 52.136918],
+              [5.285320, 52.137125],
+              [5.290180, 52.137340],
+              [5.295760, 52.136985]
+            ]
+          },
+          "properties": {
+            "cadLayer": "CABLES_110KV",
+            "length": 980.3,
+            "cableType": "XLPE",
+            "id": "Cable_002"
+          }
+        }
+      ]
+    },
+    {
+      "layerName": "CABLES_380KV",
+      "layerType": "cable",
+      "voltage": 380,
+      "description": "380kV high-voltage cables",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [5.299760, 52.135865],
+              [5.305420, 52.136120],
+              [5.311280, 52.136380],
+              [5.317650, 52.136540],
+              [5.322505, 52.136260]
+            ]
+          },
+          "properties": {
+            "cadLayer": "CABLES_380KV",
+            "length": 1850.7,
+            "cableType": "XLPE-3x1x2500",
+            "id": "Cable_HV_001"
+          }
+        }
+      ]
+    },
+    {
+      "layerName": "CABLES_10KV",
+      "layerType": "cable",
+      "voltage": 10,
+      "description": "10kV medium-voltage cables",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [5.262853, 52.136787],
+              [5.264200, 52.138450],
+              [5.265800, 52.140120]
+            ]
+          },
+          "properties": {
+            "cadLayer": "CABLES_10KV",
+            "length": 450.2,
+            "cableType": "PILC",
+            "id": "Cable_MV_001"
+          }
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "totalLayers": 3,
+    "totalFeatures": 4,
+    "totalLength": 4731.7,
+    "bounds": {
+      "minLon": 5.262853,
+      "minLat": 52.135865,
+      "maxLon": 5.322505,
+      "maxLat": 52.140120
+    },
+    "notes": "Exported from AutoCAD via QGIS. All coordinates in WGS84 (EPSG:4326). Original CAD coordinate system: RD New (EPSG:28992)"
+  }
+}

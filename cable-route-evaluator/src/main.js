@@ -103,7 +103,7 @@ import "./style.css";
 esriConfig.apiKey = config.arcgis.apiKey;
 
 // Log configuration status
-console.log('🗺️ ProRail Cable Route Evaluator');
+console.log('🗺️ ProRail High Voltage Connection Evaluator');
 console.log('📍 Spatial Reference:', config.spatialReference.wkid);
 console.log('🔑 API Key configured:', !!config.arcgis.apiKey);
 console.log('🚂 ProRail Base URL:', config.prorail.baseUrl);
@@ -1729,21 +1729,30 @@ function updateRouteMetadataField(routeId, field, rawValue) {
 
 function resolveTechnicalRoomsLayer(map) {
   if (!map) {
+    console.warn("❌ No map provided to resolveTechnicalRoomsLayer");
     return null;
   }
 
   if (window.app?.technicalRoomsLayer) {
+    console.log("✅ Using cached technical rooms layer:", window.app.technicalRoomsLayer.title);
     return window.app.technicalRoomsLayer;
   }
 
   // First try to find the EV Gebouwen layer by ID (most reliable)
+  console.log("🔍 Searching for EV Gebouwen (Technical Rooms) layer...");
   const evGebouwenLayer = getLayerById(map, 'ev-gebouwen');
   if (evGebouwenLayer) {
-    console.log('✅ Found EV Gebouwen (Technical Rooms) layer by ID');
+    console.log('✅ Found EV Gebouwen (Technical Rooms) layer by ID:', evGebouwenLayer.title);
+    console.log('   Layer type:', evGebouwenLayer.type);
+    console.log('   Layer URL:', evGebouwenLayer.url);
+    console.log('   Layer loaded:', evGebouwenLayer.loaded);
+    console.log('   Has createQuery:', typeof evGebouwenLayer.createQuery);
     window.app.technicalRoomsLayer = evGebouwenLayer;
     return evGebouwenLayer;
   }
 
+  console.warn("⚠️ EV Gebouwen layer not found by ID, trying fallback search...");
+  
   // Fallback: search by title/id keywords
   const searchTerms = ['ev-gebouwen', 'ev gebouwen', 'technical room', 'technische ruimte'];
   const stack = [];
@@ -1760,7 +1769,9 @@ function resolveTechnicalRoomsLayer(map) {
     const matches = searchTerms.some(term => title.includes(term) || id.includes(term));
 
     if (matches) {
-      console.log(`✅ Found technical rooms layer: ${layer.title} (${layer.id})`);
+      console.log(`✅ Found technical rooms layer via fallback: ${layer.title} (${layer.id})`);
+      console.log('   Layer type:', layer.type);
+      console.log('   Has createQuery:', typeof layer.createQuery);
       window.app.technicalRoomsLayer = layer;
       return layer;
     }
@@ -1768,6 +1779,7 @@ function resolveTechnicalRoomsLayer(map) {
     if (matches && typeof layer.createFeatureLayer === 'function') {
       try {
         const featureLayer = layer.createFeatureLayer();
+        console.log(`✅ Created feature layer from technical rooms layer: ${featureLayer.title}`);
         window.app.technicalRoomsLayer = featureLayer;
         return featureLayer;
       } catch (error) {
@@ -1784,6 +1796,8 @@ function resolveTechnicalRoomsLayer(map) {
     }
   }
 
+  console.error("❌ Technical rooms layer not found! Layer 'ev-gebouwen' is not in the map.");
+  console.log("   Available layers:", map.layers?.map(l => `${l.id} (${l.title})`).join(', '));
   return null;
 }
 
@@ -1805,6 +1819,14 @@ async function addDistanceAnnotations(routeId, evaluationResult) {
   const route = drawingManager.getRoute(routeId);
   if (!route || !route.geometry) {
     return;
+  }
+
+  // ✅ FIX: Check if route crosses tracks - if it does, distance annotations are not relevant
+  // The 700m rule only applies to NON-CROSSING routes (parallel routes)
+  const routeCrossesTracks = evaluationResult?.crossing?.crossesTrack ?? false;
+  if (routeCrossesTracks) {
+    console.log(`   ℹ️ Route ${routeId} crosses tracks - distance annotations not applicable (crossing angle rule applies instead)`);
+    return; // Don't show distance annotations for crossing routes
   }
 
   const routeGeometry = route.geometry;
