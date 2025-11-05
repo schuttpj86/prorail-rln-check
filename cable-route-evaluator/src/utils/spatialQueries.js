@@ -10,7 +10,9 @@
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
 import Point from "@arcgis/core/geometry/Point";
 import Query from "@arcgis/core/rest/support/Query";
-import { config } from "../config.js";
+
+// V004 Configuration
+import { configV4 as config } from "../config.v4.js";
 
 /**
  * Fast calculation of minimum distance from route to features

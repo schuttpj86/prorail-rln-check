@@ -1,7 +1,8 @@
 {
-  "name": "cable-route-evaluator",
+  "name": "prorail-rln-v004-evaluator",
   "version": "1.0.0",
-  "description": "ProRail Cable Route EMC Compliance Evaluation Tool",
+  "description": "ProRail RLN00398-V004 EMC Compliance Evaluation Tool - High Voltage Connection Assessment",
+  "author": "DNV",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,5 +16,14 @@
   },
   "devDependencies": {
     "vite": "^7.0.4"
-  }
+  },
+  "keywords": [
+    "ProRail",
+    "RLN00398",
+    "EMC",
+    "High Voltage",
+    "Cable Route",
+    "GIS",
+    "ArcGIS"
+  ]
 }

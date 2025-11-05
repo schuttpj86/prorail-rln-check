@@ -1,210 +1,263 @@
-# 🚂 ProRail Cable Route Evaluator
+# ProRail RLN00398-V004 EMC Evaluator
 
-Web-based GIS tool for evaluating high-voltage cable routes against ProRail's EMC standards (RLN00398).
+**Version:** 1.0.0  
+**Standard:** RLN00398-V004 (ProRail EMC Policy for High Voltage Connections)  
+**Developer:** DNV  
+**Status:** 🚧 In Development - V004 Implementation Phase
 
-## 🎯 Features
+---
 
-- ✅ Interactive map with ProRail infrastructure layers
-- ✅ Draw and edit cable route alternatives  
-- ✅ Automatic compliance evaluation against 8 criteria
-- ✅ Real-time visual feedback
-- ✅ Export compliance reports
-- ✅ Project save/load (localStorage)
+## 📋 Overview
 
-## 🛠️ Technology Stack
+A professional web-based GIS application for evaluating electromagnetic compatibility (EMC) compliance of high-voltage connections (cables and overhead lines) against ProRail's RLN00398-V004 standard. This tool enables engineers to perform preliminary EMC assessments, compare multiple route alternatives, and generate comprehensive evaluation reports.
 
-- **Frontend:** Vite + ArcGIS Maps SDK for JavaScript 4.33
-- **UI Components:** Calcite Design System
-- **Spatial Reference:** RD New (EPSG:28992)
-- **Data Source:** ProRail ArcGIS FeatureServer
+### Key Features
 
-## 📋 Prerequisites
+- ✅ **Interactive Route Drawing** - Create cable/overhead line routes directly on the map
+- ✅ **GeoJSON Import/Export** - Import routes from CAD systems, export for further analysis
+- ✅ **Automated EMC Checks** - Evaluate routes against RLN00398-V004 criteria
+- ✅ **V004 Flowchart Logic** - Sequential filtering through Steps A-F
+- ✅ **Comparative Analysis** - Compare multiple route alternatives side-by-side
+- ✅ **Professional Reports** - Generate markdown reports for RFP documentation
+- ✅ **Multi-language Support** - Dutch and English interface
+- ✅ **Real ProRail Data** - Integration with ProRail WMS layers (tracks, technical rooms, etc.)
 
-- Node.js (v18+ recommended)
-- npm or yarn
-- ArcGIS API Key
+---
 
-## 🚀 Getting Started
+## 🎯 Purpose
 
-### 1. Install Dependencies
+This tool implements the **flowchart-based assessment approach** from RLN00398-V004, providing:
 
-```bash
-npm install
-```
+1. **Early Design Phase Support** - Identify EMC issues before detailed engineering
+2. **Route Optimization** - Compare alternatives to find optimal solutions
+3. **Stakeholder Communication** - Clear visualization and reporting for non-technical stakeholders
+4. **Efficiency** - Reduce time spent on manual checks and calculations
+5. **Compliance Documentation** - Generate audit-ready reports for ProRail submissions
 
-### 2. Configure Environment Variables
+---
 
-Copy `.env.example` to `.env` and add your credentials:
+## 🏗️ Technology Stack
 
-```bash
-cp .env.example .env
-```
+- **Frontend Framework:** Vanilla JavaScript (ES6+)
+- **Build Tool:** Vite 7.0
+- **GIS Engine:** ArcGIS Maps SDK for JavaScript 4.33
+- **UI Components:** Esri Calcite Design System 3.2
+- **Coordinate System:** RD New (EPSG:28992 / Amersfoort)
+- **Data Sources:** ProRail WMS Services
 
-Edit `.env` with your ArcGIS credentials:
-
-```
-VITE_ARCGIS_API_KEY=your_key_here
-VITE_CLIENT_ID=your_client_id
-VITE_CLIENT_SECRET=your_client_secret
-VITE_PRORAIL_BASE_URL=https://maps.prorail.nl/arcgis/rest/services/ProRail_basiskaart/FeatureServer
-```
-
-### 3. Run Development Server
-
-```bash
-npm run dev
-```
-
-The app will open at `http://localhost:3000`
-
-### 4. Build for Production
-
-```bash
-npm run build
-```
-
-Output will be in `dist/` folder.
-
-### 5. Preview Production Build
-
-```bash
-npm run preview
-```
-
-## 🐳 Docker Deployment
-
-```bash
-# Build image
-docker build -t cable-route-evaluator .
-
-# Run container
-docker run -p 3000:3000 cable-route-evaluator
-```
-
-## 📐 ProRail EMC Compliance Criteria
-
-The tool evaluates cable routes against 8 requirements from RLN00398:
-
-1. **Crossing Angle:** 80° - 100°
-2. **Fault Clearing:** ≤ 100ms
-3. **Distance (≥35kV):** ≥ 700m (or 11m on 25kV lines)
-4. **Distance (3-core <35kV):** ≥ 11m
-5. **Distance (single-phase <35kV):** ≥ 11m
-6. **Technical Rooms:** ≥ 20m
-7. **Insulated Pipe:** Required under tracks
-8. **Joints:** ≥ 31m from tracks
+---
 
 ## 📁 Project Structure
 
 ```
 cable-route-evaluator/
 ├── src/
-│   ├── main.js              # Application entry point
-│   ├── config.js            # Configuration & constants
-│   ├── style.css            # Styles
-│   ├── layers/              # 📦 Layer management system
-│   │   ├── layerConfig.js   # Define all FeatureServer layers here
-│   │   ├── layerFactory.js  # Factory to create ArcGIS layers
-│   │   └── README.md        # How to add new FeatureServers
-│   ├── utils/               # Utility functions (Phase 4)
-│   │   ├── geometry.js      # Geometry calculations
-│   │   └── compliance.js    # Compliance evaluation
-│   └── components/          # UI components (Phase 6)
-├── index.html               # Main HTML
-├── package.json             # Dependencies
-├── vite.config.js           # Vite configuration
-├── .env                     # Environment variables (not in git)
-└── README.md               # This file
+│   ├── config.v4.js                    # V004 Standard Configuration
+│   ├── main.js                          # Application Entry Point
+│   ├── style.css                        # Global Styles
+│   │
+│   ├── i18n/                            # Internationalization
+│   │   ├── en.js                        # English translations
+│   │   ├── nl.js                        # Dutch translations (Nederlands)
+│   │   └── i18n.js                      # i18n Manager
+│   │
+│   ├── layers/                          # ArcGIS Layer Configurations
+│   │   ├── baseConfig.js                # Base layer settings
+│   │   └── layerConfig.js               # ProRail WMS layers
+│   │
+│   └── utils/
+│       ├── v4/                          # V004 Implementation
+│       │   ├── flowchartEvaluator.js    # Flowchart-based EMC evaluation
+│       │   └── reportGenerator.js       # V004 report templates
+│       │
+│       ├── shared/                      # Reusable Utilities
+│       │   └── geometryUtils.js         # Geometry calculations
+│       │
+│       ├── drawingUtils.js              # Map drawing tools
+│       ├── spatialQueries.js            # GIS spatial queries
+│       ├── routeImporter.js             # GeoJSON route import
+│       ├── routeExporter.js             # JSON export
+│       ├── reportExporter.js            # Comparative report generation
+│       ├── measurementTool.js           # Distance measurement widget
+│       └── jointManager.js              # Cable joint/moffen management
+│
+├── docs/                                # Documentation
+│   ├── ARCHITECTURE.md                  # System architecture
+│   ├── V004_IMPLEMENTATION.md           # V004 standard implementation
+│   ├── DEVELOPMENT_GUIDE.md             # Developer guide
+│   └── API_REFERENCE.md                 # API documentation
+│
+├── index.html                           # Main HTML file
+├── package.json                         # Dependencies
+├── vite.config.js                       # Vite configuration
+└── README.md                            # This file
 ```
-
-## 🆕 Adding New FeatureServers
-
-The app uses a modular layer management system. To add new data sources:
-
-1. **Add URL to `src/config.js`**
-2. **Define layers in `src/layers/layerConfig.js`**
-3. **Import and use in `src/main.js`**
-
-See **[src/layers/README.md](src/layers/README.md)** for detailed instructions and examples.
-
-### Quick Example:
-
-```javascript
-// 1. In src/config.js
-export const config = {
-  newDataSource: {
-    baseUrl: 'https://example.com/arcgis/rest/services/MyService/FeatureServer'
-  }
-};
-
-// 2. In src/layers/layerConfig.js
-export const newLayers = [{
-  id: 'my-layer',
-  url: `${config.newDataSource.baseUrl}/0`,
-  title: '🎯 My Layer',
-  visible: true,
-  renderer: { /* ... */ },
-  popupTemplate: { /* ... */ }
-}];
-
-// 3. In src/main.js
-import { newLayers } from "./layers/layerConfig.js";
-const myFeatureLayers = createFeatureLayersWithHandling(newLayers);
-```
-
-## 🗺️ Development Phases
-
-- [x] **Phase 1:** Foundation setup ← **WE ARE HERE**
-- [ ] **Phase 2:** ProRail data integration
-- [ ] **Phase 3:** Drawing & editing tools
-- [ ] **Phase 4:** Geometry analysis engine
-- [ ] **Phase 5:** Compliance evaluation logic
-- [ ] **Phase 6:** Visual feedback & UI
-- [ ] **Phase 7:** Reports & export
-
-## 🧪 Testing
-
-```bash
-# Run development server and test drawing
-npm run dev
-
-# Open browser console (F12)
-# Check for:
-# - ✅ Map loads with ProRail layers
-# - ✅ Drawing tools work
-# - ✅ Routes save to localStorage
-```
-
-## 🐛 Troubleshooting
-
-### Map doesn't load
-- Check API key in `.env`
-- Verify ProRail URL is accessible
-- Check browser console for errors
-
-### Spatial reference issues
-- Verify RD New (EPSG:28992) is supported
-- Check view.spatialReference in console
-
-### ProRail layers don't appear
-- Verify FeatureServer URL
-- Check layer indices in `config.js`
-- Try accessing URL directly in browser
-
-## 📚 Resources
-
-- [ArcGIS Maps SDK for JavaScript](https://developers.arcgis.com/javascript/latest/)
-- [ProRail RLN00398 Standard](https://www.prorail.nl)
-- [RD New Coordinate System](https://epsg.io/28992)
-
-## 📝 License
-
-Internal DNV project - All rights reserved
-
-## 👤 Author
-
-DNV EFT - ProRail Cable Route Evaluation Team
 
 ---
 
-**Status:** Phase 1 Complete - Basic map with ProRail layers functional ✅
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** 18.x or higher
+- **npm** 9.x or higher
+- Modern web browser (Chrome, Firefox, Edge)
+
+### Installation
+
+```bash
+# Clone the repository (if applicable)
+cd cable-route-evaluator
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+The application will open at `http://localhost:3000`
+
+### Building for Production
+
+```bash
+# Create production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+---
+
+## 📖 Usage
+
+### 1. Create a Route
+
+1. Click the **➕ Route** button in the Routes panel
+2. Enter route details:
+   - Name
+   - Voltage level (≤24kV, 24-35kV, ≥35kV)
+   - Type (Cable or Overhead Line)
+   - Cable configuration (if applicable)
+3. Click **Start Drawing** and draw your route on the map
+4. Right-click to finish drawing
+
+### 2. Import Existing Routes
+
+1. Click **📂 Import** button
+2. Select a GeoJSON file with route geometry
+3. Configure imported route parameters
+4. Routes are automatically added to the map
+
+### 3. Evaluate EMC Compliance
+
+1. Select a route from the Routes panel
+2. Click **⚡ Evaluate** button
+3. Review evaluation results in the right panel:
+   - Overall compliance status (PASS / REQUIRES STUDY / FAIL)
+   - Step-by-step assessment (A → F)
+   - Distance measurements to infrastructure
+   - Recommendations and mitigations
+
+### 4. Compare Routes
+
+1. Create or import multiple routes
+2. Click **📄 Report** to generate comparative analysis
+3. Download markdown report with side-by-side comparison
+
+### 5. Export Routes
+
+- **Single Route:** Click **💾 Export** on individual route card
+- **All Routes:** Click **💾 Export All** button to save all routes in one JSON file
+
+---
+
+## 🔬 RLN00398-V004 Implementation
+
+This application implements the flowchart-based assessment from RLN00398-V004:
+
+### Flowchart Steps
+
+- **Step A:** Basic Requirements (voltage, clearances, fault protection)
+- **Step B:** Distance and Parallel Run Checks
+- **Step C:** Unity Study Requirements
+- **Step D:** EMC Detail Study Requirements
+- **Steps E/F:** Mitigation Decision Tree
+
+See `docs/V004_IMPLEMENTATION.md` for complete details.
+
+---
+
+## 📚 Documentation
+
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - System design and components
+- **[V004 Implementation](docs/V004_IMPLEMENTATION.md)** - Standard interpretation and logic
+- **[Development Guide](docs/DEVELOPMENT_GUIDE.md)** - Setup, development, and deployment
+- **[API Reference](docs/API_REFERENCE.md)** - Function and API documentation
+
+---
+
+## 🧪 Development Status
+
+### ✅ Completed Features
+
+- Interactive map with ProRail layers
+- Route drawing and editing
+- GeoJSON import/export
+- Basic EMC rule evaluation (V001 logic)
+- Multi-language support (NL/EN)
+- Distance measurement tool
+- Cable joint/moffen management
+- Professional report generation
+
+### 🚧 In Progress
+
+- **V004 Flowchart Logic** (Steps A-F) - Currently implementing
+- **V004 Assessment Criteria** - Mapping from standard
+- **Unity Study Integration** - Step C requirements
+- **HVDC Connection Handling** - Special assessment logic
+
+### 📋 Planned Features
+
+- Automated PDF report generation
+- ProRail API integration for real-time data
+- Offline mode support
+- Advanced route optimization algorithms
+- Integration with EMC calculation tools
+
+---
+
+## 🤝 Contributing
+
+This is a proprietary DNV project. For internal development guidelines, see `docs/DEVELOPMENT_GUIDE.md`.
+
+---
+
+## 📄 License
+
+**Proprietary & Confidential**  
+© 2025 DNV. All rights reserved.
+
+This software is confidential and proprietary to DNV. Unauthorized copying, distribution, or use is strictly prohibited.
+
+---
+
+## 📞 Support
+
+For technical support or questions:
+- Internal DNV Team: Contact project lead
+- ProRail Standard Questions: Refer to RLN00398-V004 official documentation
+
+---
+
+## 🔄 Version History
+
+| Version | Date | Description |
+|---------|------|-------------|
+| 1.0.0 | Nov 2025 | Initial V004 clean branch - streamlined structure |
+| 0.9.x | Oct 2025 | V001 implementation and feature development |
+
+---
+
+**Status:** 🟡 Beta - V004 Implementation In Progress

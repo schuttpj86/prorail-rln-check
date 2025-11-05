@@ -35,7 +35,9 @@ import Graphic from "@arcgis/core/Graphic";
 import Point from "@arcgis/core/geometry/Point";
 import Polyline from "@arcgis/core/geometry/Polyline";
 
-import { config } from "./config.js";
+// V004 Configuration
+import { configV4 as config } from "./config.v4.js";
+
 import { 
   prorailLayers, 
   structuresBuildingsLayers, 
@@ -49,7 +51,9 @@ import { createFeatureLayersWithHandling } from "./layers/layerFactory.js";
 import { EnhancedDrawingManager } from "./utils/EnhancedDrawingManager.js";
 import { getNextRouteColor } from "./utils/drawingUtils.js";
 import { getCurrentLanguage, setCurrentLanguage, t, updateTranslations } from "./i18n/translations.js";
-import { evaluateRoute } from "./utils/emcEvaluator.js";
+
+// V004 Evaluator - Flowchart-based assessment
+import { evaluateRouteV4 as evaluateRoute } from "./utils/v4/flowchartEvaluator.js";
 import { 
   activateMeasurementTool, 
   deactivateMeasurementTool, 

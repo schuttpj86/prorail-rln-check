@@ -5,7 +5,8 @@
  * This makes it easy to add, remove, or modify data sources.
  */
 
-import { config } from '../config.js';
+// V004 Configuration
+import { configV4 as config } from '../config.v4.js';
 
 /**
  * ProRail FeatureServer Layers
