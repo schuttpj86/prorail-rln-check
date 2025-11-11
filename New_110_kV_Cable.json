@@ -1,0 +1,106 @@
+{
+  "id": "route-1762853787514-5d7dfychn",
+  "name": "New 110 kV Cable",
+  "description": "",
+  "created": "2025-11-11T09:36:27.514Z",
+  "lastModified": "2025-11-11T09:43:43.432Z",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        5.6662414719642715,
+        51.92637888663293
+      ],
+      [
+        5.684265916544325,
+        51.92704050065143
+      ],
+      [
+        5.7113025834144056,
+        51.927569784844174
+      ],
+      [
+        5.731043641763987,
+        51.934449911357675
+      ],
+      [
+        5.750140969949997,
+        51.94079986115607
+      ]
+    ],
+    "spatialReference": {
+      "wkid": 4326,
+      "latestWkid": 4326
+    }
+  },
+  "waypoints": [
+    {
+      "longitude": 5.6662414719642715,
+      "latitude": 51.92637888663293,
+      "x": 5.6662414719642715,
+      "y": 51.92637888663293
+    },
+    {
+      "longitude": 5.684265916544325,
+      "latitude": 51.92704050065143,
+      "x": 5.684265916544325,
+      "y": 51.92704050065143
+    },
+    {
+      "longitude": 5.7113025834144056,
+      "latitude": 51.927569784844174,
+      "x": 5.7113025834144056,
+      "y": 51.927569784844174
+    },
+    {
+      "longitude": 5.731043641763987,
+      "latitude": 51.934449911357675,
+      "x": 5.731043641763987,
+      "y": 51.934449911357675
+    },
+    {
+      "longitude": 5.750140969949997,
+      "latitude": 51.94079986115607,
+      "x": 5.750140969949997,
+      "y": 51.94079986115607
+    }
+  ],
+  "measurements": {
+    "totalLength": 6153,
+    "totalLengthKm": "6.153",
+    "pointCount": 5,
+    "segmentCount": 4
+  },
+  "style": {
+    "color": "#16a34a",
+    "width": 3,
+    "visible": true
+  },
+  "metadata": {
+    "infrastructureType": "cable",
+    "voltageKv": 110,
+    "faultClearingTimeMs": 120,
+    "electrifiedSystem": "standard",
+    "hasDeltaOrMulticore": null,
+    "hasDeltaFormation": null,
+    "hasPadCurrentControl": null,
+    "circuitConfig": null,
+    "minJointDistanceMeters": null,
+    "hasBoredCrossing": null,
+    "hasDoubleGuying": null,
+    "hasIsolatedNeutral": null,
+    "notes": ""
+  },
+  "attributes": {
+    "routeId": "route-1762853787514-5d7dfychn",
+    "name": "New 110 kV Cable",
+    "length": 6153,
+    "created": "2025-11-11T09:36:27.514Z"
+  },
+  "exportInfo": {
+    "version": "1.0.0",
+    "exportDate": "2025-11-11T09:43:43.432Z",
+    "application": "ProRail Cable Route Evaluator",
+    "schema": "prorail-route-v1"
+  }
+}

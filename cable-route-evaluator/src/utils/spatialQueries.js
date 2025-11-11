@@ -8,22 +8,48 @@
  */
 
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
+import * as projection from "@arcgis/core/geometry/projection";
+import SpatialReference from "@arcgis/core/geometry/SpatialReference";
 import Point from "@arcgis/core/geometry/Point";
 import Query from "@arcgis/core/rest/support/Query";
 
 // V004 Configuration
 import { configV4 as config } from "../config.v4.js";
 
+// RD New spatial reference (EPSG:28992) - used for meter-based calculations
+const RD_NEW_SR = new SpatialReference({ wkid: 28992 });
+
+/**
+ * Ensure geometry is in RD New (EPSG:28992) for meter-based operations
+ * @param {Geometry} geometry - Input geometry
+ * @returns {Promise<Geometry>} Projected geometry in RD New
+ */
+async function ensureRDNew(geometry) {
+  if (!geometry) return null;
+  
+  // Check if already in RD New
+  if (geometry.spatialReference?.wkid === 28992) {
+    return geometry;
+  }
+  
+  // Load projection engine if not loaded
+  await projection.load();
+  
+  // Project to RD New
+  return projection.project(geometry, RD_NEW_SR);
+}
+
 /**
  * Fast calculation of minimum distance from route to features
  * Uses optimized geometryEngine.distance without expensive sampling
+ * Ensures geometries are in the same spatial reference (RD New) before calculation
  * 
- * @param {Polyline} routeGeometry - The cable route geometry
+ * @param {Polyline} routeGeometry - The cable route geometry (should already be in RD New)
  * @param {Array<Feature>} features - Array of features to check against
  * @param {number} bufferAdjustment - Amount to subtract from distance (for track width, etc.)
- * @returns {Object} Object containing minimum distance and nearest feature
+ * @returns {Promise<Object>} Object containing minimum distance and nearest feature
  */
-export function calculateMinimumDistanceToFeatures(routeGeometry, features, bufferAdjustment = 0) {
+export async function calculateMinimumDistanceToFeatures(routeGeometry, features, bufferAdjustment = 0) {
   if (!routeGeometry || !features || features.length === 0) {
     return null;
   }
@@ -32,9 +58,14 @@ export function calculateMinimumDistanceToFeatures(routeGeometry, features, buff
   let nearestFeature = null;
 
   try {
+    // Ensure route geometry is in RD New for meter-based distance calculations
+    const projectedRoute = await ensureRDNew(routeGeometry);
+    
     // Use fast geometry-to-geometry distance
     for (const feature of features) {
-      const distance = geometryEngine.distance(routeGeometry, feature.geometry, "meters");
+      // Also ensure feature geometry is in RD New
+      const projectedFeature = await ensureRDNew(feature.geometry);
+      const distance = geometryEngine.distance(projectedRoute, projectedFeature, "meters");
       
       if (distance < minDistance) {
         minDistance = distance;
@@ -66,11 +97,11 @@ export function calculateMinimumDistanceToFeatures(routeGeometry, features, buff
  * @param {Polyline} routeGeometry - The cable route geometry
  * @param {Array<Feature>} trackFeatures - Array of track features to check against
  * @param {number} trackWidthAdjustment - Track width to subtract from distance (default 1.5m)
- * @returns {Object} Object containing minimum distance, nearest track, and closest points
+ * @returns {Promise<Object>} Object containing minimum distance, nearest track, and closest points
  */
-export function calculateMinimumDistanceToTracks(routeGeometry, trackFeatures, trackWidthAdjustment = 1.5) {
+export async function calculateMinimumDistanceToTracks(routeGeometry, trackFeatures, trackWidthAdjustment = 1.5) {
   // Use the generic function with track width adjustment
-  const result = calculateMinimumDistanceToFeatures(routeGeometry, trackFeatures, trackWidthAdjustment);
+  const result = await calculateMinimumDistanceToFeatures(routeGeometry, trackFeatures, trackWidthAdjustment);
   
   if (!result) return null;
   
@@ -99,8 +130,12 @@ export async function queryTechnicalRooms(routeGeometry, technicalRoomsLayer, bu
   }
 
   try {
+    // Ensure geometry is in RD New for meter-based buffer operations
+    const projectedGeometry = await ensureRDNew(routeGeometry);
+    console.log(`   📐 Geometry SR: ${routeGeometry.spatialReference?.wkid || 'unknown'} → ${projectedGeometry.spatialReference?.wkid || 'unknown'}`);
+    
     // Create buffer around route for query
-    const searchBuffer = geometryEngine.buffer(routeGeometry, bufferDistance, "meters");
+    const searchBuffer = geometryEngine.buffer(projectedGeometry, bufferDistance, "meters");
     
     // Create query
     const query = technicalRoomsLayer.createQuery();
@@ -125,8 +160,8 @@ export async function queryTechnicalRooms(routeGeometry, technicalRoomsLayer, bu
     if (results.features.length > 0) {
       minDistance = Infinity;
       
-      // Calculate true minimum distance by sampling route points
-      const routeDistanceResult = calculateMinimumDistanceToFeatures(routeGeometry, results.features);
+      // Calculate true minimum distance by sampling route points (use projected geometry)
+      const routeDistanceResult = await calculateMinimumDistanceToFeatures(projectedGeometry, results.features);
       
       if (routeDistanceResult && routeDistanceResult.distance < minDistance) {
         minDistance = routeDistanceResult.distance;
@@ -212,7 +247,7 @@ export async function queryAllTrackLayers(routeGeometry, trackLayers, bufferDist
     console.log(`   📊 Total track features found: ${allFeatures.length}`);
     
     // Calculate minimum distance across all track features - NO BUFFERING
-    const routeDistanceResult = calculateMinimumDistanceToTracks(routeGeometry, allFeatures, trackWidthAdjustment);
+    const routeDistanceResult = await calculateMinimumDistanceToTracks(routeGeometry, allFeatures, trackWidthAdjustment);
     
     if (routeDistanceResult) {
       minDistance = routeDistanceResult.distance;
@@ -252,8 +287,12 @@ export async function queryTrackCenterlines(routeGeometry, tracksLayer, bufferDi
   }
 
   try {
+    // Ensure geometry is in RD New for meter-based buffer operations
+    const projectedGeometry = await ensureRDNew(routeGeometry);
+    console.log(`   📐 Geometry SR: ${routeGeometry.spatialReference?.wkid || 'unknown'} → ${projectedGeometry.spatialReference?.wkid || 'unknown'}`);
+    
     // Create buffer around route for query
-    const searchBuffer = geometryEngine.buffer(routeGeometry, bufferDistance, "meters");
+    const searchBuffer = geometryEngine.buffer(projectedGeometry, bufferDistance, "meters");
     
     // Create query
     const query = tracksLayer.createQuery();
@@ -274,7 +313,7 @@ export async function queryTrackCenterlines(routeGeometry, tracksLayer, bufferDi
     let nearestFeature = null;
 
     if (results.features.length > 0) {
-      const routeDistanceResult = calculateMinimumDistanceToTracks(routeGeometry, results.features, trackWidthAdjustment);
+      const routeDistanceResult = await calculateMinimumDistanceToTracks(projectedGeometry, results.features, trackWidthAdjustment);
       
       if (routeDistanceResult) {
         minDistance = routeDistanceResult.distance;
@@ -316,8 +355,11 @@ export async function queryEarthingPoints(routeGeometry, earthingLayer, bufferDi
   }
 
   try {
+    // Ensure geometry is in RD New for meter-based buffer operations
+    const projectedGeometry = await ensureRDNew(routeGeometry);
+    
     // Create buffer around route for query
-    const searchBuffer = geometryEngine.buffer(routeGeometry, bufferDistance, "meters");
+    const searchBuffer = geometryEngine.buffer(projectedGeometry, bufferDistance, "meters");
     
     // Create query
     const query = earthingLayer.createQuery();

@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@arcgis/core": "~4.33.0",
-    "@esri/calcite-components": "^3.2.1"
+    "@esri/calcite-components": "^3.2.1",
+    "mermaid": "^11.12.1"
   },
   "devDependencies": {
     "vite": "^7.0.4"

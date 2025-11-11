@@ -23,12 +23,12 @@ body {
 
 /* Calcite Shell takes full height */
 calcite-shell {
-  --calcite-shell-panel-width: 400px;
-  --calcite-shell-panel-max-width: 600px;
+  --calcite-shell-panel-width: 450px;
+  --calcite-shell-panel-max-width: 700px;
 }
 
 calcite-shell-panel {
-  --calcite-shell-panel-width: 400px;
+  --calcite-shell-panel-width: 450px;
 }
 
 /* Ensure collapse buttons are visible */
@@ -886,3 +886,81 @@ label span {
   transform: scale(0.8);
   pointer-events: none;
 }
+
+/* Results Panel - Fix text wrapping and overflow issues */
+#resultsPanel {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+#results {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Fix table layout in results */
+#results table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+#results table td {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 0; /* Force word wrapping */
+}
+
+/* First column (Rule title) - narrower */
+#results table td:nth-child(1) {
+  width: 25%;
+  min-width: 100px;
+}
+
+/* Second column (Status) - fixed width */
+#results table td:nth-child(2) {
+  width: 15%;
+  min-width: 80px;
+  white-space: normal !important;
+}
+
+/* Third column (Details) - widest, allows wrapping */
+#results table td:nth-child(3) {
+  width: 60%;
+  min-width: 150px;
+}
+
+/* Scrollbar styling for results panel */
+#results::-webkit-scrollbar {
+  width: 10px;
+}
+
+#results::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 5px;
+}
+
+#results::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 5px;
+}
+
+#results::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Fix route snapshot grid to not overflow */
+#results .route-snapshot-grid {
+  overflow-x: hidden;
+}
+
+/* Ensure buttons don't cause horizontal scroll */
+#results button {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+

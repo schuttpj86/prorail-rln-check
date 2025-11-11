@@ -88,12 +88,20 @@ export function exportRouteToJSON(route) {
         : null,
       electrifiedSystem: route.metadata?.electrifiedSystem || 'standard',
       
+      // Step A: Circuit Configuration and Fault Protection (RLN00398-V004)
+      hasDeltaOrMulticore: route.metadata?.hasDeltaOrMulticore || null,       // A.1: For cables
+      hasDeltaFormation: route.metadata?.hasDeltaFormation || null,           // A.1: For overhead lines
+      hasPadCurrentControl: route.metadata?.hasPadCurrentControl || null,     // A.2: Homopolar current control
+      circuitConfig: route.metadata?.circuitConfig || null,                   // Legacy field (backward compatibility)
+      
       // Joint and crossing specifications
       minJointDistanceMeters: route.metadata?.minJointDistanceMeters !== null && route.metadata?.minJointDistanceMeters !== undefined
         ? route.metadata.minJointDistanceMeters
         : null,
-      hasDoubleGuying: route.metadata?.hasDoubleGuying || null,
+      
+      // Deprecated fields (kept for backward compatibility when importing old routes)
       hasBoredCrossing: route.metadata?.hasBoredCrossing || null,
+      hasDoubleGuying: route.metadata?.hasDoubleGuying || null,
       hasIsolatedNeutral: route.metadata?.hasIsolatedNeutral || null,
       
       // Additional notes
@@ -298,20 +306,32 @@ export function generateRouteSummary(route) {
   
   summary.push(`- Electrified system: ${route.metadata.electrifiedSystem}`);
   
+  // Step A configuration (RLN00398-V004)
+  summary.push('');
+  summary.push('Step A Configuration:');
+  
+  if (route.metadata.infrastructureType === 'cable') {
+    if (route.metadata.hasDeltaOrMulticore) {
+      summary.push('- A.1: Single cable (3-phase) or single core in trefoil ✓');
+    } else {
+      summary.push('- A.1: Circuit configuration not confirmed');
+    }
+  } else {
+    if (route.metadata.hasDeltaFormation) {
+      summary.push('- A.1: Delta formation ✓');
+    } else {
+      summary.push('- A.1: Delta formation not confirmed');
+    }
+  }
+  
+  if (route.metadata.hasPadCurrentControl) {
+    summary.push('- A.2: Homopolar current control (single grounded star point) ✓');
+  } else {
+    summary.push('- A.2: No homopolar current control');
+  }
+  
   if (route.metadata.minJointDistanceMeters !== null) {
-    summary.push(`- Min. joint distance: ${route.metadata.minJointDistanceMeters} m`);
-  }
-  
-  if (route.metadata.hasDoubleGuying) {
-    summary.push('- Double guying: Confirmed');
-  }
-  
-  if (route.metadata.hasBoredCrossing) {
-    summary.push('- Bored crossing: Yes');
-  }
-  
-  if (route.metadata.hasIsolatedNeutral) {
-    summary.push('- Isolated neutral: Yes');
+    summary.push(`- A.3: Min. joint distance: ${route.metadata.minJointDistanceMeters} m`);
   }
   
   return summary.join('\n');

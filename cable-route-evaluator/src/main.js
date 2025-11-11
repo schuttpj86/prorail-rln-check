@@ -29,8 +29,12 @@ import LayerList from "@arcgis/core/widgets/LayerList";
 import esriConfig from "@arcgis/core/config";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine";
 import * as projection from "@arcgis/core/geometry/projection.js";
-import * as projectOperator from "@arcgis/core/geometry/operators/projectOperator.js";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference";
+
+// Import utilities
+import { openFlowchartModal } from './utils/v4/flowchartVisualizer.js';
+import { openRequirementDiagramModal } from './utils/v4/requirementDiagramVisualizer.js';
+import * as projectOperator from "@arcgis/core/geometry/operators/projectOperator.js";
 import Graphic from "@arcgis/core/Graphic";
 import Point from "@arcgis/core/geometry/Point";
 import Polyline from "@arcgis/core/geometry/Polyline";
@@ -872,6 +876,32 @@ function addRouteToList(routeData) {
                 title="Export professional evaluation report (Markdown)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2V2zm1 1v10h10V3H3z"/><path d="M4 5h8v1H4V5zm0 2h8v1H4V7zm0 2h5v1H4V9z"/></svg>
         </button>
+        <button id="bijlage3-btn-${routeId}" 
+                onclick="exportBijlage3Report('${routeId}'); event.stopPropagation();" 
+                style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 4px; display: flex; align-items: center; justify-content: center; color: #007cb0; transition: all 0.2s; border-radius: 4px; width: 28px; height: 28px;"
+                onmouseover="this.style.backgroundColor='#e8f4f8'; this.style.color='#005a87'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='#007cb0'"
+                title="Export Bijlage 3 compliant report (RLN00398-V004)">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h8l2 2v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/><path fill="#fff" d="M5 5h6v1H5V5zm0 2h6v1H5V7zm0 2h4v1H5V9z"/></svg>
+        </button>
+        <button id="flowchart-btn-${routeId}" 
+                onclick="showFlowchart('${routeId}'); event.stopPropagation();" 
+                style="background: none; border: none; cursor: not-allowed; font-size: 1rem; padding: 4px; display: flex; align-items: center; justify-content: center; color: #7c3aed; transition: all 0.2s; border-radius: 4px; width: 28px; height: 28px; opacity: 0.4;"
+                onmouseover="if(!this.disabled){this.style.backgroundColor='#f3e8ff'; this.style.color='#5b21b6'}"
+                onmouseout="if(!this.disabled){this.style.backgroundColor='transparent'; this.style.color='#7c3aed'}"
+                title="View evaluation flowchart (evaluate route first)"
+                disabled>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="5" y="11" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 5v3h4v3M12 5v3h-4v3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+        <button id="requirement-btn-${routeId}" 
+                onclick="showRequirementDiagram('${routeId}'); event.stopPropagation();" 
+                style="background: none; border: none; cursor: not-allowed; font-size: 1rem; padding: 4px; display: flex; align-items: center; justify-content: center; color: #0891b2; transition: all 0.2s; border-radius: 4px; width: 28px; height: 28px; opacity: 0.4;"
+                onmouseover="if(!this.disabled){this.style.backgroundColor='#cffafe'; this.style.color='#0e7490'}"
+                onmouseout="if(!this.disabled){this.style.backgroundColor='transparent'; this.style.color='#0891b2'}"
+                title="View requirement diagram (evaluate route first)"
+                disabled>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="2" width="5" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="10" width="5" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="10" width="5" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="4.5" cy="5" r="0.8" fill="currentColor"/><circle cx="11.5" cy="5" r="0.8" fill="currentColor"/></svg>
+        </button>
         <button id="collapse-toggle-${routeId}" 
                 onclick="toggleRouteCollapse('${routeId}'); event.stopPropagation();"
                 style="background: none; border: none; cursor: pointer; font-size: 0.875rem; padding: 4px; display: flex; align-items: center; justify-content: center; color: #999; transition: all 0.2s; border-radius: 4px; width: 28px; height: 28px;"
@@ -915,16 +945,91 @@ function addRouteToList(routeData) {
         </div>
       </div>
 
-      <!-- Description -->
+      <!-- Project Details for Bijlage 3 Report -->
       <div style="margin-bottom: 16px;">
-        <label style="display: block; color: #666; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; font-weight: 600;">Description</label>
-        <textarea id="desc-${routeId}" 
-                  class="route-desc-input"
-                  placeholder="Add a description..."
-                  style="width: 100%; min-height: 60px; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; resize: vertical; font-family: inherit; background: white; color: #1a1a1a; transition: all 0.2s; line-height: 1.5; outline: none;"
-                  onfocus="this.style.borderColor='#000'; this.style.boxShadow='0 0 0 3px rgba(0,0,0,0.05)'"
-                  onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
-                  onchange="updateRouteDescription('${routeId}', this.value)">${description}</textarea>
+        <div style="color: #007cb0; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h8l2 2v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/><path fill="#fff" d="M5 5h6v1H5V5zm0 2h6v1H5V7zm0 2h4v1H5V9z"/></svg>
+          Report Information
+          <span style="color: #999; font-weight: 400; font-size: 0.7rem;">(for Bijlage 3 export)</span>
+        </div>
+        
+        <div style="display: grid; gap: 12px; padding: 14px; background: #f0f8fc; border: 1px solid #c6e5f3; border-radius: 6px;">
+          <!-- Project Description -->
+          <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+            <span style="font-weight: 500; color: #005a87; font-size: 0.75rem;">Project Description</span>
+            <textarea id="project-desc-${routeId}" 
+                      placeholder="Beschrijf het project en de aard van de werkzaamheden (nieuwe aanleg/inlussing/verzwaring)..."
+                      style="width: 100%; min-height: 65px; padding: 9px 12px; border: 1px solid #c6e5f3; border-radius: 6px; font-size: 0.8125rem; resize: vertical; font-family: inherit; background: white; color: #1a1a1a; transition: all 0.2s; line-height: 1.4; outline: none;"
+                      onfocus="this.style.borderColor='#007cb0'; this.style.boxShadow='0 0 0 3px rgba(0,124,176,0.1)'"
+                      onblur="this.style.borderColor='#c6e5f3'; this.style.boxShadow='none'"
+                      onchange="updateRouteMetadataField('${routeId}', 'projectDescription', this.value)"
+                      onclick="event.stopPropagation();">${metadata.projectDescription || ''}</textarea>
+          </label>
+
+          <!-- Location Details (2 columns) - Auto-populated from nearest track -->
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+            <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-weight: 500; color: #005a87; font-size: 0.75rem;">
+                Railway Line
+                <span style="color: #999; font-weight: 400; font-size: 0.7rem;">(auto-filled)</span>
+              </span>
+              <input type="text" 
+                     id="railway-${routeId}"
+                     placeholder="Run evaluation to auto-fill..."
+                     value="${metadata.railwayLine || ''}"
+                     readonly
+                     style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; background: #f5f5f5; color: #666; cursor: not-allowed;"
+                     title="Auto-populated from nearest track after evaluation"
+                     onclick="event.stopPropagation();" />
+            </label>
+
+            <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-weight: 500; color: #005a87; font-size: 0.75rem;">
+                Geocode
+                <span style="color: #999; font-weight: 400; font-size: 0.7rem;">(auto-filled)</span>
+              </span>
+              <input type="text" 
+                     id="geocode-${routeId}"
+                     placeholder="Run evaluation to auto-fill..."
+                     value="${metadata.geocode || ''}"
+                     readonly
+                     style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; background: #f5f5f5; color: #666; cursor: not-allowed;"
+                     title="Auto-populated from nearest track after evaluation"
+                     onclick="event.stopPropagation();" />
+            </label>
+          </div>
+
+          <!-- Kilometer Marker and Author (2 columns) -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-weight: 500; color: #005a87; font-size: 0.75rem;">
+                Kilometer Marker
+                <span style="color: #999; font-weight: 400; font-size: 0.7rem;">(auto-filled)</span>
+              </span>
+              <input type="text" 
+                     id="km-marker-${routeId}"
+                     placeholder="Run evaluation to auto-fill..."
+                     value="${metadata.kilometerMarker || ''}"
+                     readonly
+                     style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; background: #f5f5f5; color: #666; cursor: not-allowed;"
+                     title="Auto-populated from nearest track after evaluation"
+                     onclick="event.stopPropagation();" />
+            </label>
+
+            <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-weight: 500; color: #005a87; font-size: 0.75rem;">Author Name</span>
+              <input type="text" 
+                     id="author-${routeId}"
+                     placeholder="Your name"
+                     value="${metadata.author || ''}"
+                     style="padding: 9px 12px; border: 1px solid #c6e5f3; border-radius: 6px; font-size: 0.8125rem; background: white; color: #1a1a1a; transition: all 0.2s; outline: none;"
+                     onfocus="this.style.borderColor='#007cb0'; this.style.boxShadow='0 0 0 3px rgba(0,124,176,0.1)'"
+                     onblur="this.style.borderColor='#c6e5f3'; this.style.boxShadow='none'"
+                     onchange="updateRouteMetadataField('${routeId}', 'author', this.value)"
+                     onclick="event.stopPropagation();" />
+            </label>
+          </div>
+        </div>
       </div>
     
       <!-- EMC Parameters -->
@@ -933,16 +1038,81 @@ function addRouteToList(routeData) {
         <div style="display: grid; gap: 12px;">
           <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
             <span style="font-weight: 500; color: #444; font-size: 0.75rem;">Infrastructure type</span>
-            <select style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; background: white; color: #1a1a1a; transition: all 0.2s; outline: none; cursor: pointer;"
+            <select id="infra-type-${routeId}" style="padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.8125rem; background: white; color: #1a1a1a; transition: all 0.2s; outline: none; cursor: pointer;"
                     onfocus="this.style.borderColor='#000'; this.style.boxShadow='0 0 0 3px rgba(0,0,0,0.05)'"
                     onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
-                    onchange="updateRouteMetadataField('${routeId}', 'infrastructureType', this.value);"
+                    onchange="updateRouteMetadataField('${routeId}', 'infrastructureType', this.value); toggleCircuitConfigOptions('${routeId}');"
                     onclick="event.stopPropagation();">
               <option value="cable" ${infrastructureType === 'cable' ? 'selected' : ''}>High-voltage cable</option>
-              <option value="overhead" ${infrastructureType === 'overhead' ? 'selected' : ''}>Overhead line</option>
+              <option value="overhead" ${infrastructureType === 'overhead' ? 'selected' : ''}>Overhead line (transmission)</option>
             </select>
           </label>
           
+          <!-- Step A.1: Circuit Configuration -->
+          <div id="circuit-config-${routeId}" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
+            <div style="font-weight: 600; color: #1a1a1a; font-size: 0.8125rem; margin-bottom: 4px;">
+              A.1: Circuit Configuration
+              <span style="color: #999; font-weight: 400; font-size: 0.75rem; margin-left: 6px;">(Driehoek/Triangle)</span>
+            </div>
+            
+            <!-- For Cables -->
+            <div id="cable-config-${routeId}" style="display: ${infrastructureType === 'cable' ? 'flex' : 'none'}; flex-direction: column; gap: 8px;">
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.8125rem; color: #444;">
+                <input type="checkbox" ${metadata.hasDeltaOrMulticore ? 'checked' : ''}
+                       style="width: 18px; height: 18px; cursor: pointer; accent-color: #000;"
+                       onchange="updateRouteMetadataField('${routeId}', 'hasDeltaOrMulticore', this.checked);"
+                       onclick="event.stopPropagation();" />
+                <span>Single cable (3-phase) OR Single core in trefoil</span>
+              </label>
+              <div style="font-size: 0.6875rem; color: #666; margin-left: 28px; line-height: 1.4;">
+                Both configurations are compliant with A.1 requirements.
+              </div>
+            </div>
+            
+            <!-- For Overhead Lines -->
+            <div id="overhead-config-${routeId}" style="display: ${infrastructureType === 'overhead' ? 'flex' : 'none'}; flex-direction: column; gap: 8px;">
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.8125rem; color: #444;">
+                <input type="checkbox" ${metadata.hasDeltaFormation ? 'checked' : ''}
+                       style="width: 18px; height: 18px; cursor: pointer; accent-color: #000;"
+                       onchange="updateRouteMetadataField('${routeId}', 'hasDeltaFormation', this.checked);"
+                       onclick="event.stopPropagation();" />
+                <span>Delta formation (driehoek configuratie)</span>
+              </label>
+              <div style="font-size: 0.6875rem; color: #666; margin-left: 28px; line-height: 1.4;">
+                Required for overhead line compliance with A.1.
+              </div>
+            </div>
+          </div>
+          
+          <!-- Step A.2: Homopolar Current Control -->
+          <div style="padding: 12px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
+            <div style="font-weight: 600; color: #1a1a1a; font-size: 0.8125rem; margin-bottom: 8px;">
+              A.2: Homopolar Current Control
+              <span style="color: #999; font-weight: 400; font-size: 0.75rem; margin-left: 6px;">(Zero-sequence)</span>
+            </div>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.8125rem; color: #444;">
+              <input type="checkbox" ${metadata.hasPadCurrentControl ? 'checked' : ''}
+                     style="width: 18px; height: 18px; cursor: pointer; accent-color: #000;"
+                     onchange="updateRouteMetadataField('${routeId}', 'hasPadCurrentControl', this.checked);"
+                     onclick="event.stopPropagation();" />
+              <span>Single grounded star point (enkel geaard sterpunt)</span>
+            </label>
+            <div style="font-size: 0.6875rem; color: #666; margin-top: 6px; margin-left: 28px; line-height: 1.4;">
+              No path for homopolar/zero-sequence current to flow. See also G3 in RLN00398.
+            </div>
+          </div>
+          
+          <!-- Step A.3: Note about joint distance -->
+          <div style="padding: 12px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffc107;">
+            <div style="font-weight: 600; color: #1a1a1a; font-size: 0.8125rem; margin-bottom: 6px;">
+              A.3: Single-Phase Fault Risk
+            </div>
+            <div style="font-size: 0.75rem; color: #444; line-height: 1.5;">
+              For ≤24 kV: No joints/earthing points within 31m of track.<br/>
+              <span style="color: #666;">Place joints using the asset point manager and evaluate to check compliance.</span>
+            </div>
+          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <label style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 6px;">
               <span style="font-weight: 500; color: #444; font-size: 0.75rem;">Voltage (kV)</span>
@@ -987,37 +1157,6 @@ function addRouteToList(routeData) {
                    onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'"
                    onchange="updateRouteMetadataField('${routeId}', 'minJointDistanceMeters', this.value);"
                    onclick="event.stopPropagation();" />
-          </label>
-        </div>
-        
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
-          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.8125rem; color: #444; padding: 6px; border-radius: 4px; transition: background 0.2s;"
-                 onmouseover="this.style.backgroundColor='#f8f9fa'"
-                 onmouseout="this.style.backgroundColor='transparent'">
-            <input type="checkbox" ${metadata.hasDoubleGuying ? 'checked' : ''}
-                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #000;"
-                   onchange="updateRouteMetadataField('${routeId}', 'hasDoubleGuying', this.checked);"
-                   onclick="event.stopPropagation();" />
-            <span>Double guying confirmed</span>
-          </label>
-          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.8125rem; color: #444; padding: 6px; border-radius: 4px; transition: background 0.2s;"
-                 onmouseover="this.style.backgroundColor='#f8f9fa'"
-                 onmouseout="this.style.backgroundColor='transparent'">
-            <input type="checkbox" ${metadata.hasBoredCrossing ? 'checked' : ''}
-                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #000;"
-                   onchange="updateRouteMetadataField('${routeId}', 'hasBoredCrossing', this.checked);"
-                   onclick="event.stopPropagation();" />
-            <span>Insulated conduit (bored crossing)</span>
-          </label>
-          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.8125rem; color: #444; padding: 6px; border-radius: 4px; transition: background 0.2s;"
-                 onmouseover="this.style.backgroundColor='#f8f9fa'"
-                 onmouseout="this.style.backgroundColor='transparent'"
-                 title="Check if HV system has isolated/floating neutral (IT earthing) where zero-sequence/homopolar current is physically impossible. Usually applies to MV cables with ungrounded systems. (RLN00398 V002, Table T4)">
-            <input type="checkbox" ${metadata.hasIsolatedNeutral ? 'checked' : ''}
-                   style="width: 18px; height: 18px; cursor: pointer; accent-color: #000;"
-                   onchange="updateRouteMetadataField('${routeId}', 'hasIsolatedNeutral', this.checked);"
-                   onclick="event.stopPropagation();" />
-            <span>Isolated neutral (no zero-sequence current)</span>
           </label>
         </div>
       </div>
@@ -1376,8 +1515,8 @@ function buildEvaluationDetailHtml(route) {
           <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="color: #666;">Nominal voltage</span><span style="color: #000;">${escapeHtml(voltageText)}</span></div>
           <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="color: #666;">Fault clearing time</span><span style="color: #000;">${escapeHtml(faultClearingText)}</span></div>
           <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="color: #666;">Min. joint distance</span><span style="color: #000;">${escapeHtml(jointDistanceText)}</span></div>
-          <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="color: #666;">Double guying</span><span style="color: #000;">${escapeHtml(boolToText(metadata.hasDoubleGuying))}</span></div>
-          <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="color: #666;">Insulated conduit</span><span style="color: #000;">${escapeHtml(boolToText(metadata.hasBoredCrossing))}</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="color: #666;">A.1: Circuit config</span><span style="color: #000;">${escapeHtml(metadata.infrastructureType === 'cable' ? boolToText(metadata.hasDeltaOrMulticore) : boolToText(metadata.hasDeltaFormation))}</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 16px;"><span style="color: #666;">A.2: Homopolar control</span><span style="color: #000;">${escapeHtml(boolToText(metadata.hasPadCurrentControl))}</span></div>
         </div>
         ${notesSection}
       </div>
@@ -1731,6 +1870,31 @@ function updateRouteMetadataField(routeId, field, rawValue) {
   }
 }
 
+/**
+ * Toggle circuit configuration options visibility based on infrastructure type
+ */
+function toggleCircuitConfigOptions(routeId) {
+  const { drawingManager } = window.app || {};
+  if (!drawingManager) return;
+  
+  const route = drawingManager.getRoute(routeId);
+  if (!route) return;
+  
+  const infrastructureType = route.metadata?.infrastructureType || 'cable';
+  const cableConfig = document.getElementById(`cable-config-${routeId}`);
+  const overheadConfig = document.getElementById(`overhead-config-${routeId}`);
+  
+  if (cableConfig && overheadConfig) {
+    if (infrastructureType === 'cable') {
+      cableConfig.style.display = 'flex';
+      overheadConfig.style.display = 'none';
+    } else {
+      cableConfig.style.display = 'none';
+      overheadConfig.style.display = 'flex';
+    }
+  }
+}
+
 function resolveTechnicalRoomsLayer(map) {
   if (!map) {
     console.warn("❌ No map provided to resolveTechnicalRoomsLayer");
@@ -2050,6 +2214,163 @@ async function addDistanceAnnotations(routeId, evaluationResult) {
   }
 }
 
+/**
+ * Auto-populate location fields (Railway Line, Geocode, Kilometer Marker) from nearest track
+ * @param {string} routeId - Route ID
+ * @param {Object} evaluationResult - Result from evaluation containing spatial analysis
+ */
+async function autoPopulateLocationFields(routeId, evaluationResult) {
+  const { drawingManager, map } = window.app || {};
+  if (!drawingManager) return;
+
+  try {
+    console.log('📍 Auto-populating location fields from nearest track...');
+    
+    // Get the route
+    const route = drawingManager.getRoute(routeId);
+    if (!route || !route.geometry) return;
+
+    // Project route geometry to RD New (28992) for distance calculations
+    const projectedGeometry = projection.project(route.geometry, SpatialReference.WebMercator);
+
+    // Find railway tracks layer
+    const prorailGroup = map?.layers?.find(l => 
+      l.title?.includes("ProRail") || l.title?.includes("Railway")
+    );
+    const railwayTracksLayer = prorailGroup?.layers?.find(l => l.customId === 'prorail-tracks');
+    
+    if (!railwayTracksLayer) {
+      console.warn('⚠️ Railway tracks layer not found for auto-population');
+      return;
+    }
+
+    // Query nearest track to the route (use 1km buffer)
+    const query = railwayTracksLayer.createQuery();
+    query.geometry = projectedGeometry;
+    query.distance = 1000; // 1km buffer
+    query.units = 'meters';
+    query.spatialRelationship = 'intersects';
+    query.outFields = ['*'];
+    query.returnGeometry = true;
+
+    const results = await railwayTracksLayer.queryFeatures(query);
+    
+    if (results.features.length === 0) {
+      console.log('   ℹ️ No nearby tracks found for location auto-population');
+      return;
+    }
+
+    // Find the closest track
+    let nearestTrack = null;
+    let minDistance = Infinity;
+    
+    for (const track of results.features) {
+      const distance = geometryEngine.distance(projectedGeometry, track.geometry, 'meters');
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestTrack = track;
+      }
+    }
+
+    if (!nearestTrack) return;
+
+    console.log('   ✅ Found nearest track:', {
+      distance: `${minDistance.toFixed(1)}m`,
+      attributes: nearestTrack.attributes
+    });
+
+    // Extract location information from track attributes
+    // Common ProRail attribute names (adjust based on actual schema)
+    const attrs = nearestTrack.attributes;
+    
+    // LOG ALL AVAILABLE ATTRIBUTES TO FIND CORRECT FIELD NAMES
+    console.log('   📋 AVAILABLE ATTRIBUTE NAMES:', Object.keys(attrs).sort().join(', '));
+    console.log('   📋 ALL ATTRIBUTE VALUES:', attrs);
+    
+    const locationData = {};
+
+    // Try to extract Railway Line name (from ProRail: GEOCODE_NAAM is the railway line name)
+    const railwayLineFields = ['GEOCODE_NAAM', 'KMLINT_OMSCHRIJVING', 'BAANVAK', 'SPOORWEG', 'LIJN'];
+    for (const field of railwayLineFields) {
+      if (attrs[field]) {
+        locationData.railwayLine = attrs[field];
+        break;
+      }
+    }
+
+    // Try to extract Geocode
+    const geocodeFields = ['GEOCODE', 'GEO_CODE', 'CODE', 'TRACK_CODE'];
+    for (const field of geocodeFields) {
+      if (attrs[field]) {
+        locationData.geocode = attrs[field];
+        break;
+      }
+    }
+
+    // Try to extract Kilometer markers (from ProRail: KM_GEOCODE_VAN and KM_GEOCODE_TOT)
+    const kmFields = ['KM_GEOCODE_VAN', 'KM_VAN', 'KM_BEGIN', 'KM_START', 'KMLINT'];
+    const kmToFields = ['KM_GEOCODE_TOT', 'KM_TOT', 'KM_END', 'KM_TO'];
+    
+    let kmFrom = null;
+    let kmTo = null;
+    
+    for (const field of kmFields) {
+      if (attrs[field] !== null && attrs[field] !== undefined) {
+        kmFrom = attrs[field];
+        break;
+      }
+    }
+    
+    for (const field of kmToFields) {
+      if (attrs[field] !== null && attrs[field] !== undefined) {
+        kmTo = attrs[field];
+        break;
+      }
+    }
+    
+    if (kmFrom !== null && kmTo !== null) {
+      locationData.kilometerMarker = `${kmFrom}-${kmTo}`;
+    } else if (kmFrom !== null) {
+      locationData.kilometerMarker = `${kmFrom}`;
+    }
+    
+    // Log extraction results
+    console.log('   🔍 Extracted values:', {
+      railwayLine: locationData.railwayLine || '❌ NOT FOUND',
+      geocode: locationData.geocode || '❌ NOT FOUND',
+      kilometerMarker: locationData.kilometerMarker || '❌ NOT FOUND'
+    });
+
+    // Update route metadata if we found any data
+    if (Object.keys(locationData).length > 0) {
+      console.log('   📝 Updating route metadata:', locationData);
+      drawingManager.updateRouteMetadata(routeId, locationData);
+      
+      // Update UI fields
+      if (locationData.railwayLine) {
+        const railwayInput = document.getElementById(`railway-${routeId}`);
+        if (railwayInput) railwayInput.value = locationData.railwayLine;
+      }
+      if (locationData.geocode) {
+        const geocodeInput = document.getElementById(`geocode-${routeId}`);
+        if (geocodeInput) geocodeInput.value = locationData.geocode;
+      }
+      if (locationData.kilometerMarker) {
+        const kmInput = document.getElementById(`km-marker-${routeId}`);
+        if (kmInput) kmInput.value = locationData.kilometerMarker;
+      }
+      
+      console.log('   ✅ Location fields auto-populated successfully');
+    } else {
+      console.log('   ℹ️ No recognizable location data found in track attributes');
+      console.log('   📋 Available attributes:', Object.keys(attrs).join(', '));
+    }
+
+  } catch (error) {
+    console.warn('⚠️ Failed to auto-populate location fields:', error);
+  }
+}
+
 async function evaluateRouteCompliance(routeId) {
   const { drawingManager, map, trackSectionsLayer, switchesLayer } = window.app || {};
   if (!drawingManager) {
@@ -2099,13 +2420,29 @@ async function evaluateRouteCompliance(routeId) {
       technicalRoomsLayer: resolveTechnicalRoomsLayer(map)
     };
 
+    // Get joints/earthing points for this route
+    const assetPoints = getPointsForRoute(routeId);
+    const joints = assetPoints.filter(point => point.type === 'joint' || point.type === 'earthing');
+    
+    console.log(`   📍 Found ${joints.length} joint(s)/earthing point(s) for evaluation`);
+    if (joints.length > 0) {
+      // Debug: log first joint structure
+      console.log(`   🔍 First joint data:`, joints[0]);
+      const minDistance = Math.min(...joints.map(j => parseFloat(j.distanceToTrackMeters) || Infinity));
+      console.log(`   📏 Minimum joint distance to track: ${minDistance === Infinity ? 'N/A' : minDistance.toFixed(2) + 'm'}`);
+    }
+
     const result = await evaluateRoute(route, {
       metadata: route.metadata,
-      layers: evaluationLayers
+      layers: evaluationLayers,
+      joints: joints  // Pass joints to evaluator
     });
 
     drawingManager.setRouteCompliance(routeId, result);
     ensureEvaluationErrorsMap().delete(routeId);
+    
+    // Auto-populate location fields from nearest track
+    await autoPopulateLocationFields(routeId, result);
     
     console.log(`✅ EMC evaluation complete for route ${routeId}`, result.summary);
     console.log(`   📊 Status: ${result.summary?.status}`);
@@ -2121,6 +2458,22 @@ async function evaluateRouteCompliance(routeId) {
     
     // Update UI components in order
     updateRouteComplianceUI(routeId);
+    
+    // Enable the flowchart button now that evaluation is complete
+    const flowchartBtn = document.getElementById(`flowchart-btn-${routeId}`);
+    if (flowchartBtn) {
+      flowchartBtn.disabled = false;
+      flowchartBtn.style.opacity = '1';
+      flowchartBtn.style.cursor = 'pointer';
+    }
+    
+    // Enable the requirement diagram button now that evaluation is complete
+    const requirementBtn = document.getElementById(`requirement-btn-${routeId}`);
+    if (requirementBtn) {
+      requirementBtn.disabled = false;
+      requirementBtn.style.opacity = '1';
+      requirementBtn.style.cursor = 'pointer';
+    }
     
     // Add distance annotations to the map (async but don't wait for it)
     addDistanceAnnotations(routeId, result).catch(err => {
@@ -2686,6 +3039,159 @@ window.exportComparativeReport = function(options = {}) {
     console.error('Failed to generate comparative report:', error);
     alert(`Failed to generate comparative report: ${error.message}`);
   }
+};
+
+/**
+ * Export Bijlage 3 compliant report for a single trace (V004)
+ * Generates a report that aligns 100% with "Bijlage 3: Template tbv basisrapportage EMC"
+ */
+window.exportBijlage3Report = async function(routeId, options = {}) {
+  console.log(`📋 Generating Bijlage 3 report for route ${routeId}`);
+  
+  const { drawingManager } = window.app;
+  const route = drawingManager.getRoute(routeId);
+  
+  if (!route) {
+    console.error('Route not found:', routeId);
+    alert('Route not found');
+    return;
+  }
+
+  // Check if route has been evaluated
+  // Note: The complete evaluation result IS stored as route.compliance
+  // It contains: { summary, rules, flowchartResults, status, message, crossing }
+  if (!route.compliance || !route.compliance.flowchartResults) {
+    console.error('Route not evaluated. Compliance data:', route.compliance);
+    alert('Please evaluate the route before generating a Bijlage 3 report. Click the ⚡ Evaluate button first.');
+    return;
+  }
+  
+  // The entire compliance object is the evaluation result
+  const evaluationResult = route.compliance;
+
+  try {
+    // Import the Bijlage 3 generator and map screenshot utility
+    const { generateTraceReport, downloadBijlage3Report } = await import('./utils/v4/reportGenerator.js');
+    const { captureAndDownloadRouteMap } = await import('./utils/mapScreenshot.js');
+    
+    // Prepare base filename
+    const routeName = route.name || `Route-${route.id}`;
+    const safeName = routeName.replace(/[^a-zA-Z0-9-_]/g, '-');
+    const timestamp = new Date().toISOString().split('T')[0];
+    const baseFilename = `ProRail-RLN00398-V004-Bijlage3-${safeName}-${timestamp}`;
+    const mapFilename = `${baseFilename}.png`;
+    
+    // Prepare project info with map filename
+    const projectInfo = {
+      projectDescription: options.projectDescription || route.metadata?.projectDescription || route.description || '[INSTRUCTIE: Beschrijf het project en de werkzaamheden]',
+      railwayLine: options.railwayLine || route.metadata?.railwayLine || '[AUTO-FILL: Spoorweg naam]',
+      geocode: options.geocode || route.metadata?.geocode || '[AUTO-FILL: Geocode]',
+      kilometerMarker: options.kilometerMarker || route.metadata?.kilometerMarker || '[AUTO-FILL: Spoor km]',
+      documentTitle: options.documentTitle || `EMC studie ${route.name || route.id}`,
+      documentVersion: options.documentVersion || 'V001',
+      author: options.author || route.metadata?.author || '[Te voltooien]',
+      date: new Date().toLocaleDateString('nl-NL'),
+      mapFilename: mapFilename  // Include map filename for markdown reference
+    };
+    
+    console.log('📋 Generating report with evaluation result:', evaluationResult);
+    
+    // Step 1: Capture map screenshot (only the specific route)
+    console.log('📸 Capturing map screenshot...');
+    try {
+      const { view, drawingManager, distanceAnnotationsLayer } = window.app;
+      const routesLayer = drawingManager.cableRoutesLayer;
+      await captureAndDownloadRouteMap(view, route, routesLayer, distanceAnnotationsLayer, baseFilename);
+      console.log('✅ Map screenshot downloaded:', mapFilename);
+    } catch (mapError) {
+      console.warn('⚠️ Failed to capture map, continuing with report generation:', mapError);
+      // Continue even if map capture fails
+    }
+    
+    // Step 2: Generate the Bijlage 3 report
+    const reportContent = generateTraceReport(route, evaluationResult, projectInfo);
+    
+    // Step 3: Download the report
+    const reportFilename = downloadBijlage3Report(reportContent, routeName);
+    
+    // Show success feedback
+    const button = event?.target;
+    if (button) {
+      const originalText = button.innerHTML;
+      button.innerHTML = '✅ Exported!';
+      button.style.background = '#4caf50';
+      button.style.color = 'white';
+      
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.style.background = '';
+        button.style.color = '';
+      }, 2000);
+    }
+    
+    console.log(`✅ Bijlage 3 report exported: ${reportFilename}`);
+    
+    // Show info to user
+    setTimeout(() => {
+      alert(`✅ Bijlage 3 rapport geëxporteerd!\n\n📄 Markdown: ${reportFilename}\n📸 Kaart: ${mapFilename}\n\nDit rapport voldoet 100% aan de RLN00398-V004 Bijlage 3 template.\n\nConverteren naar DOCX/PDF:\npandoc ${reportFilename} -o rapport.docx --reference-doc=prorail-template.docx`);
+    }, 100);
+    
+  } catch (error) {
+    console.error('Failed to generate Bijlage 3 report:', error);
+    alert(`Failed to generate Bijlage 3 report: ${error.message}`);
+  }
+};
+
+/**
+ * Show interactive flowchart visualization for a route
+ */
+window.showFlowchart = function(routeId) {
+  console.log(`🔄 Opening flowchart for route ${routeId}`);
+  
+  const { drawingManager } = window.app;
+  const route = drawingManager.getRoute(routeId);
+  
+  if (!route) {
+    console.error('Route not found:', routeId);
+    alert('Route not found');
+    return;
+  }
+
+  // Check if route has been evaluated
+  if (!route.compliance || !route.compliance.flowchartResults) {
+    console.error('Route not evaluated. Compliance data:', route.compliance);
+    alert('Please evaluate the route before viewing the flowchart. Click the ⚡ Evaluate button first.');
+    return;
+  }
+  
+  // Open the flowchart modal with the evaluation results
+  openFlowchartModal(route.name, route.compliance);
+};
+
+/**
+ * Show interactive requirement diagram visualization for a route
+ */
+window.showRequirementDiagram = function(routeId) {
+  console.log(`📋 Opening requirement diagram for route ${routeId}`);
+  
+  const { drawingManager } = window.app;
+  const route = drawingManager.getRoute(routeId);
+  
+  if (!route) {
+    console.error('Route not found:', routeId);
+    alert('Route not found');
+    return;
+  }
+
+  // Check if route has been evaluated
+  if (!route.compliance || !route.compliance.flowchartResults) {
+    console.error('Route not evaluated. Compliance data:', route.compliance);
+    alert('Please evaluate the route before viewing the requirement diagram. Click the ⚡ Evaluate button first.');
+    return;
+  }
+  
+  // Open the requirement diagram modal with the evaluation results
+  openRequirementDiagramModal(route.name, route.compliance);
 };
 
 /**
@@ -3536,6 +4042,7 @@ window.app = {
   config 
 };
 window.updateRouteMetadataField = updateRouteMetadataField;
+window.toggleCircuitConfigOptions = toggleCircuitConfigOptions;
 window.evaluateRouteCompliance = evaluateRouteCompliance;
 window.toggleEvaluationDetails = toggleEvaluationDetails;
 renderEvaluationReports();

@@ -17,10 +17,12 @@ A professional web-based GIS application for evaluating electromagnetic compatib
 - ✅ **GeoJSON Import/Export** - Import routes from CAD systems, export for further analysis
 - ✅ **Automated EMC Checks** - Evaluate routes against RLN00398-V004 criteria
 - ✅ **V004 Flowchart Logic** - Sequential filtering through Steps A-F
+- ✅ **Bijlage 3 Reports** - Auto-generate ProRail-compliant EMC reports (100% template alignment) **NEW! ✨**
 - ✅ **Comparative Analysis** - Compare multiple route alternatives side-by-side
-- ✅ **Professional Reports** - Generate markdown reports for RFP documentation
+- ✅ **Professional Reports** - Generate markdown reports for ProRail documentation
 - ✅ **Multi-language Support** - Dutch and English interface
 - ✅ **Real ProRail Data** - Integration with ProRail WMS layers (tracks, technical rooms, etc.)
+- ✅ **Joint/Moffen Management** - Mark and track cable joints with automatic distance calculations
 
 ---
 
@@ -160,13 +162,34 @@ npm run preview
    - Distance measurements to infrastructure
    - Recommendations and mitigations
 
-### 4. Compare Routes
+### 4. Generate Bijlage 3 Reports (NEW! ✨)
+
+**Per-trace compliance reports aligned 100% with RLN00398-V004 Bijlage 3 template:**
+
+1. Evaluate your route (click ⚡ Evaluate)
+2. Click **📋 Bijlage 3** button (blue document icon) on the route card
+3. Download the auto-generated Markdown report
+4. Convert to DOCX/PDF using Pandoc or online converters
+5. Complete placeholders and add required drawings
+6. Submit to ProRail
+
+**What's included:**
+- ✅ Full template structure (Sections 1-3 + Bijlage A)
+- ✅ Auto-filled compliance table (Initial, A.1-A.3, B.4-B.7)
+- ✅ Distance measurements and technical details
+- ✅ Onderbouwing (justifications) per requirement
+- ✅ Clear placeholders for engineer completion
+
+📖 **Full guide:** `docs/BIJLAGE3_REPORTS.md`  
+🚀 **Quick reference:** `BIJLAGE3_QUICKREF.md`
+
+### 5. Compare Routes
 
 1. Create or import multiple routes
 2. Click **📄 Report** to generate comparative analysis
 3. Download markdown report with side-by-side comparison
 
-### 5. Export Routes
+### 6. Export Routes
 
 - **Single Route:** Click **💾 Export** on individual route card
 - **All Routes:** Click **💾 Export All** button to save all routes in one JSON file
