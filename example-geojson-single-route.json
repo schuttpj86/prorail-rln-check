@@ -1,0 +1,24 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [
+      [5.6662414719642715, 51.92637888663293],
+      [5.684265916544325, 51.92704050065143],
+      [5.7113025834144056, 51.927569784844174],
+      [5.731043641763987, 51.934449911357675],
+      [5.750140969949997, 51.94079986115607]
+    ]
+  },
+  "properties": {
+    "name": "Example 110 kV Cable Route",
+    "description": "Sample cable route for import testing",
+    "voltageKv": 110,
+    "infrastructureType": "cable",
+    "faultClearingTimeMs": 120,
+    "hasDeltaOrMulticore": true,
+    "hasPadCurrentControl": true,
+    "minJointDistanceMeters": 500,
+    "notes": "Example route from CAD system"
+  }
+}

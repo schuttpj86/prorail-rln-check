@@ -84,6 +84,7 @@ export function createPointFromCoords(coords, spatialReference) {
 
 /**
  * Extracts a single point from various geometry types
+ * For polylines, returns the first point (not midpoint) for better intersection analysis
  * @param {Geometry} geometry 
  * @returns {Point|null}
  */
@@ -105,8 +106,9 @@ export function extractPointFromGeometry(geometry) {
     if (!path || !path.length) {
       return null;
     }
-    const midpointIndex = Math.floor(path.length / 2);
-    return createPointFromCoords(path[midpointIndex], geometry.spatialReference);
+    // Use the FIRST point instead of midpoint for intersection analysis
+    // This represents the actual crossing location better
+    return createPointFromCoords(path[0], geometry.spatialReference);
   }
 
   return null;
@@ -118,52 +120,74 @@ export function extractPointFromGeometry(geometry) {
 
 /**
  * Gets the direction vector of a polyline at a specific point
+ * Uses a robust approach that finds the nearest segment manually if needed
  * @param {Polyline} polyline 
  * @param {Point} point 
+ * @param {number} searchRadius - Radius to search for segments (meters)
  * @returns {Object|null} - {x, y} normalized vector
  */
-export function vectorAtPoint(polyline, point) {
+export function vectorAtPoint(polyline, point, searchRadius = 50) {
   if (!polyline || !point) {
     return null;
   }
 
-  const nearest = geometryEngine.nearestCoordinate(polyline, point);
-  if (!nearest) {
-    return null;
-  }
+  // Fallback: manually find the closest segment within search radius
+  // This is more robust for intersection points, especially with complex geometries
+  let closestSegment = null;
+  let minDistance = Infinity;
+  let segmentsChecked = 0;
+  let validSegments = 0;
 
-  const path = polyline.paths?.[nearest.pathIndex];
-  if (!path || path.length < 2) {
-    return null;
-  }
+  for (let pathIdx = 0; pathIdx < (polyline.paths?.length || 0); pathIdx++) {
+    const path = polyline.paths[pathIdx];
+    if (!path || path.length < 2) continue;
 
-  let start = path[nearest.segmentIndex];
-  let end = path[nearest.segmentIndex + 1];
+    for (let i = 0; i < path.length - 1; i++) {
+      const start = path[i];
+      const end = path[i + 1];
+      
+      segmentsChecked++;
+      
+      if (!start || !end || start.length < 2 || end.length < 2) continue;
+      
+      validSegments++;
 
-  if (!start || !end) {
-    if (nearest.segmentIndex > 0) {
-      start = path[nearest.segmentIndex - 1];
-      end = path[nearest.segmentIndex];
-    } else if (nearest.segmentIndex + 1 < path.length) {
-      start = path[nearest.segmentIndex];
-      end = path[nearest.segmentIndex + 1];
-    } else {
-      return null;
+      // Calculate distance from point to segment midpoint
+      const midX = (start[0] + end[0]) / 2;
+      const midY = (start[1] + end[1]) / 2;
+      const dx = point.x - midX;
+      const dy = point.y - midY;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        if (distance <= searchRadius) {
+          closestSegment = { start, end, distance };
+        }
+      }
     }
   }
 
-  const vx = end[0] - start[0];
-  const vy = end[1] - start[1];
-  const length = Math.hypot(vx, vy);
+  // If we found a close segment, use it
+  if (closestSegment) {
+    const vx = closestSegment.end[0] - closestSegment.start[0];
+    const vy = closestSegment.end[1] - closestSegment.start[1];
+    const length = Math.hypot(vx, vy);
 
-  if (length === 0) {
-    return null;
+    if (length > 0) {
+      return {
+        x: vx / length,
+        y: vy / length
+      };
+    }
   }
 
-  return {
-    x: vx / length,
-    y: vy / length
-  };
+  // If nothing found, log diagnostic info
+  if (!closestSegment && segmentsChecked > 0) {
+    console.log(`         ⚠️ vectorAtPoint: No segment within ${searchRadius}m. Checked ${segmentsChecked} segments, ${validSegments} valid. Closest was ${minDistance.toFixed(1)}m`);
+  }
+
+  return null;
 }
 
 /**
@@ -198,40 +222,119 @@ export function angleBetweenVectors(vectorA, vectorB) {
 
 /**
  * Analyzes crossing angles between route and track geometries
+ * Uses a small buffer to detect near-crossings (within tolerance)
+ * 
  * @param {Polyline} routeRd - Route in RD coordinates
  * @param {Array<Geometry>} trackGeometries - Array of track centerlines
+ * @param {number} tolerance - Distance tolerance in meters for detecting crossings (default 2m)
  * @returns {Object} - {crossesTrack, primaryAngle, angles[]}
  */
-export function analyzeCrossings(routeRd, trackGeometries) {
+export function analyzeCrossings(routeRd, trackGeometries, tolerance = 2) {
   const angles = [];
   let crossesTrack = false;
+  
+  console.log(`      🔍 Analyzing ${trackGeometries.length} tracks for crossings (tolerance: ${tolerance}m)...`);
+  console.log(`      📍 Route SR: ${routeRd?.spatialReference?.wkid}, Type: ${routeRd?.type}`);
+  console.log(`      📏 Route has ${routeRd?.paths?.length || 0} path(s)`);
+  if (routeRd?.paths?.[0]) {
+    console.log(`      📏 First path has ${routeRd.paths[0].length} points`);
+  }
+  
+  let intersectionCount = 0;
+  let emptyIntersectionCount = 0;
+  let noPointCount = 0;
+  let noVectorCount = 0;
+  let nullGeometryCount = 0;
+  let wrongTypeCount = 0;
+  let nearMissCount = 0;
 
-  for (const geometry of trackGeometries) {
+  // Sample first few tracks to see what we're working with
+  for (let i = 0; i < Math.min(5, trackGeometries.length); i++) {
+    const g = trackGeometries[i];
+    console.log(`      📍 Track ${i}: SR=${g?.spatialReference?.wkid}, Type=${g?.type}, Paths=${g?.paths?.length || 0}`);
+  }
+
+  for (let i = 0; i < trackGeometries.length; i++) {
+    const geometry = trackGeometries[i];
     if (!geometry) {
+      nullGeometryCount++;
+      continue;
+    }
+    
+    if (geometry.type !== 'polyline') {
+      wrongTypeCount++;
       continue;
     }
 
-    const intersection = geometryEngine.intersect(routeRd, geometry);
+    // First check distance - if too far, skip
+    const distance = geometryEngine.distance(routeRd, geometry, "meters");
+    if (distance > tolerance) {
+      continue;
+    }
+    
+    if (distance < tolerance && i < 10) {
+      console.log(`      📏 Track ${i} is ${distance.toFixed(2)}m from route (within tolerance)`);
+    }
+
+    // Use buffer approach for near-crossings
+    // Buffer the track slightly to catch near-intersections
+    const bufferedTrack = geometryEngine.buffer(geometry, tolerance, "meters");
+    const intersection = geometryEngine.intersect(routeRd, bufferedTrack);
+    
+    // Debug first few intersections
+    if (i < 3 || (distance < tolerance && i < 10)) {
+      console.log(`      🔍 Track ${i}: distance=${distance.toFixed(2)}m, intersection=${intersection ? 'exists' : 'null'}, isEmpty=${intersection?.isEmpty}`);
+    }
+    
     if (!intersection || intersection.isEmpty) {
+      if (distance < tolerance) {
+        nearMissCount++;
+      }
+      emptyIntersectionCount++;
       continue;
     }
 
+    intersectionCount++;
+    console.log(`      ✅ Track ${i} has intersection! Type: ${intersection.type}, Distance: ${distance.toFixed(2)}m`);
+    
     const intersectionPoint = extractPointFromGeometry(intersection);
     if (!intersectionPoint) {
+      noPointCount++;
+      console.log(`      ⚠️ Track ${i}: Could not extract point from intersection`);
       continue;
     }
+
+    console.log(`      📍 Track ${i} intersection point: [${intersectionPoint.x.toFixed(2)}, ${intersectionPoint.y.toFixed(2)}]`);
 
     const routeVector = vectorAtPoint(routeRd, intersectionPoint);
     const trackVector = vectorAtPoint(geometry, intersectionPoint);
+    
+    if (!routeVector || !trackVector) {
+      noVectorCount++;
+      console.log(`      ⚠️ Track ${i}: Failed to get vectors (route=${!!routeVector}, track=${!!trackVector})`);
+      continue;
+    }
+    
     const angle = angleBetweenVectors(routeVector, trackVector);
 
     if (angle === null) {
+      noVectorCount++;
+      console.log(`      ⚠️ Track ${i}: angleBetweenVectors returned null`);
       continue;
     }
 
     angles.push(angle);
     crossesTrack = true;
+    console.log(`      ✅ Crossing #${angles.length} at track ${i}: ${angle.toFixed(1)}°`);
   }
+  
+  console.log(`      📊 Analysis results: ${intersectionCount} intersections, ${angles.length} angles calculated`);
+  if (nullGeometryCount > 0) console.log(`      ⚠️ ${nullGeometryCount} null geometries`);
+  if (wrongTypeCount > 0) console.log(`      ⚠️ ${wrongTypeCount} non-polyline geometries`);
+  if (nearMissCount > 0) console.log(`      📏 ${nearMissCount} tracks within tolerance but no intersection found`);
+  if (emptyIntersectionCount > 0) console.log(`      ℹ️ ${emptyIntersectionCount} tracks had no intersection`);
+  if (noPointCount > 0) console.log(`      ⚠️ ${noPointCount} intersections had no extractable point`);
+  if (noVectorCount > 0) console.log(`      ⚠️ ${noVectorCount} crossing points had invalid vectors`);
 
   let primaryAngle = null;
   if (angles.length) {

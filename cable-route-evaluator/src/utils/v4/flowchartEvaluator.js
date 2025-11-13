@@ -359,25 +359,19 @@ export class FlowchartEvaluator {
     // angle is measured between the HV line segment and the railway
     // segment at the closest approach.  If no crossing is detected,
     // crossesTrack remains false and angleDeg is null.
-    if (this.route && this.route.hvLine && this.route.track) {
-      try {
-        // Check if detectCrossing function is available
-        if (typeof geometryUtils.detectCrossing === 'function') {
-          const crossingInfo = geometryUtils.detectCrossing(
-            this.route.hvLine,
-            this.route.track,
-            configV2.crossingTolerance || 10
-          );
-          if (crossingInfo) {
-            context.crossing.crossesTrack = true;
-            context.crossing.angleDeg = crossingInfo.angleDeg;
-          }
-        } else {
-          console.log('   ?? Crossing angle detection not available - feature not yet implemented');
-        }
-      } catch (err) {
-        console.warn('Unable to detect crossing', err);
+    
+    // Use pre-calculated crossing data from spatial analysis if available
+    if (this.options.preCalculatedDistances?.crossing) {
+      context.crossing.crossesTrack = this.options.preCalculatedDistances.crossing.crossesTrack;
+      context.crossing.angleDeg = this.options.preCalculatedDistances.crossing.primaryAngle;
+      
+      if (context.crossing.crossesTrack) {
+        console.log(`   ✅ Using pre-calculated crossing angle: ${context.crossing.angleDeg?.toFixed(1)}°`);
+      } else {
+        console.log(`   ℹ️ No crossing detected - route runs parallel to tracks`);
       }
+    } else {
+      console.log('   ⚠️ Crossing angle data not available in spatial analysis');
     }
 
     return context;
@@ -928,13 +922,17 @@ export async function evaluateRouteV4(route, options = {}) {
       track: nearestTrack
     };
     
-    // Prepare pre-calculated distances
+    // Prepare pre-calculated distances and crossing data
     const preCalculatedDistances = {
       trackDistance: spatialResults.tracks?.minDistance ?? Infinity,
-      technicalRoomsDistance: spatialResults.technicalRooms?.minDistance ?? Infinity
+      technicalRoomsDistance: spatialResults.technicalRooms?.minDistance ?? Infinity,
+      crossing: spatialResults.crossing || { crossesTrack: false, primaryAngle: null, angles: [] }
     };
     
     console.log('   ?? Pre-calculated distances being passed to evaluator:', preCalculatedDistances);
+    if (preCalculatedDistances.crossing?.crossesTrack) {
+      console.log(`   ?? Crossing data included: ${preCalculatedDistances.crossing.angles.length} crossing(s), primary angle: ${preCalculatedDistances.crossing.primaryAngle?.toFixed(1)}°`);
+    }
     
     // Create evaluator instance with spatial query results
     const evaluator = new FlowchartEvaluator(routeGeometry, {

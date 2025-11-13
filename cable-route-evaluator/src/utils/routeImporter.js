@@ -38,7 +38,45 @@ export function validateImportData(data) {
       errors.push('Missing or invalid waypoints');
     }
     
-  } 
+  }
+  // Check for standard GeoJSON Feature
+  else if (data.type === 'Feature' && data.geometry) {
+    importType = 'geojson-feature';
+    
+    if (!data.geometry.type) {
+      errors.push('GeoJSON Feature missing geometry.type');
+    } else if (data.geometry.type !== 'LineString' && data.geometry.type !== 'MultiLineString') {
+      errors.push(`GeoJSON geometry type must be LineString or MultiLineString, got: ${data.geometry.type}`);
+    }
+    
+    if (!data.geometry.coordinates || !Array.isArray(data.geometry.coordinates)) {
+      errors.push('GeoJSON Feature missing geometry.coordinates array');
+    } else if (data.geometry.type === 'LineString' && data.geometry.coordinates.length < 2) {
+      errors.push('GeoJSON LineString must have at least 2 coordinates');
+    }
+  }
+  // Check for GeoJSON FeatureCollection
+  else if (data.type === 'FeatureCollection' && data.features) {
+    importType = 'geojson-collection';
+    
+    if (!Array.isArray(data.features)) {
+      errors.push('GeoJSON FeatureCollection.features must be an array');
+    } else if (data.features.length === 0) {
+      errors.push('GeoJSON FeatureCollection has no features');
+    } else {
+      // Validate each feature
+      data.features.forEach((feature, index) => {
+        if (feature.type !== 'Feature') {
+          errors.push(`Feature ${index}: type must be "Feature"`);
+        }
+        if (!feature.geometry) {
+          errors.push(`Feature ${index}: missing geometry`);
+        } else if (feature.geometry.type !== 'LineString' && feature.geometry.type !== 'MultiLineString') {
+          errors.push(`Feature ${index}: geometry must be LineString or MultiLineString`);
+        }
+      });
+    }
+  }
   // Check for minimal format (CAD conversion)
   else if (data.coordinates || data.waypoints || data.points) {
     importType = 'minimal';
@@ -81,7 +119,7 @@ export function validateImportData(data) {
       errors.push('Collection has no routes');
     }
   } else {
-    errors.push('Unrecognized data format. Must be either a route object with coordinates or a full export.');
+    errors.push('Unrecognized data format. Must be GeoJSON (Feature/FeatureCollection), route with coordinates, or ProRail export format.');
   }
 
   return {
@@ -113,6 +151,103 @@ function normalizeCoordinate(coord) {
   }
   
   throw new Error('Invalid coordinate format');
+}
+
+/**
+ * Import a route from GeoJSON Feature format
+ * @param {Object} feature - GeoJSON Feature object
+ * @returns {Object} - Normalized route data ready for creation
+ */
+export function importGeoJSONFeature(feature) {
+  console.log('📥 Importing GeoJSON Feature format');
+  
+  const geometry = feature.geometry;
+  const properties = feature.properties || {};
+  
+  // Extract coordinates based on geometry type
+  let coordinates;
+  if (geometry.type === 'LineString') {
+    coordinates = geometry.coordinates.map(coord => {
+      if (!Array.isArray(coord) || coord.length < 2) {
+        throw new Error('Invalid coordinate in LineString');
+      }
+      return [parseFloat(coord[0]), parseFloat(coord[1])];
+    });
+  } else if (geometry.type === 'MultiLineString') {
+    // Flatten MultiLineString into single path
+    // Take the first path or concatenate all paths
+    console.log('   ℹ️ Converting MultiLineString to single route');
+    coordinates = [];
+    for (const path of geometry.coordinates) {
+      for (const coord of path) {
+        if (!Array.isArray(coord) || coord.length < 2) {
+          throw new Error('Invalid coordinate in MultiLineString');
+        }
+        coordinates.push([parseFloat(coord[0]), parseFloat(coord[1])]);
+      }
+    }
+  } else {
+    throw new Error(`Unsupported geometry type: ${geometry.type}`);
+  }
+
+  // Extract coordinate reference system if provided
+  const crs = feature.crs || geometry.crs || { type: 'name', properties: { name: 'EPSG:4326' } };
+  let wkid = 4326; // Default to WGS84
+  
+  if (crs.type === 'name' && crs.properties?.name) {
+    const crsName = crs.properties.name;
+    if (crsName.includes('4326')) {
+      wkid = 4326; // WGS84
+    } else if (crsName.includes('28992')) {
+      wkid = 28992; // RD New (Dutch national grid)
+    } else if (crsName.includes('3857')) {
+      wkid = 3857; // Web Mercator
+    }
+  }
+
+  // Build route data from GeoJSON properties
+  const routeData = {
+    name: properties.name || properties.Name || properties.routeName || properties.id || 'Imported GeoJSON Route',
+    description: properties.description || properties.desc || properties.notes || properties.remarks || '',
+    coordinates: coordinates,
+    
+    // Metadata from properties
+    metadata: {
+      infrastructureType: properties.infrastructureType || properties.type || properties.category || 'cable',
+      voltageKv: properties.voltageKv || properties.voltage || properties.kV || properties.voltage_kv || null,
+      faultClearingTimeMs: properties.faultClearingTimeMs || properties.clearingTime || properties.fault_time || null,
+      electrifiedSystem: properties.electrifiedSystem || properties.system || 'standard',
+      minJointDistanceMeters: properties.minJointDistanceMeters || properties.jointDistance || properties.joint_spacing || null,
+      
+      // Step A configuration
+      hasDeltaOrMulticore: properties.hasDeltaOrMulticore ?? properties.deltaConfig ?? null,
+      hasDeltaFormation: properties.hasDeltaFormation ?? properties.deltaFormation ?? null,
+      hasPadCurrentControl: properties.hasPadCurrentControl ?? properties.currentControl ?? null,
+      
+      // Legacy fields
+      hasBoredCrossing: properties.hasBoredCrossing ?? null,
+      hasDoubleGuying: properties.hasDoubleGuying ?? null,
+      hasIsolatedNeutral: properties.hasIsolatedNeutral ?? null,
+      
+      notes: properties.metadata?.notes || properties.additionalNotes || properties.comments || ''
+    },
+    
+    // Visual style
+    color: properties.color || properties.routeColor || properties.stroke || null,
+    
+    // Spatial reference
+    spatialReference: { wkid: wkid }
+  };
+
+  console.log(`   ✓ Name: ${routeData.name}`);
+  console.log(`   ✓ Coordinates: ${coordinates.length} points`);
+  console.log(`   ✓ CRS: EPSG:${wkid}`);
+  console.log(`   ✓ Infrastructure: ${routeData.metadata.infrastructureType}`);
+  if (routeData.metadata.voltageKv) {
+    console.log(`   ✓ Voltage: ${routeData.metadata.voltageKv} kV`);
+  }
+
+  return routeData;
 }
 
 /**
@@ -269,6 +404,25 @@ export function importRoutes(data) {
 
   try {
     switch (validation.type) {
+      case 'geojson-feature':
+        // Import single GeoJSON Feature
+        routes.push(importGeoJSONFeature(data));
+        break;
+        
+      case 'geojson-collection':
+        // Import GeoJSON FeatureCollection
+        console.log(`   ℹ️ Importing ${data.features.length} features from GeoJSON FeatureCollection`);
+        data.features.forEach((feature, index) => {
+          console.log(`   📍 Feature ${index + 1}/${data.features.length}`);
+          try {
+            routes.push(importGeoJSONFeature(feature));
+          } catch (error) {
+            console.error(`   ❌ Failed to import feature ${index + 1}:`, error.message);
+            // Continue with other features
+          }
+        });
+        break;
+        
       case 'minimal':
         routes.push(importMinimalRoute(data));
         break;

@@ -16,6 +16,9 @@ import Query from "@arcgis/core/rest/support/Query";
 // V004 Configuration
 import { configV4 as config } from "../config.v4.js";
 
+// Import crossing angle analysis from geometryUtils
+import { analyzeCrossings } from './shared/geometryUtils.js';
+
 // RD New spatial reference (EPSG:28992) - used for meter-based calculations
 const RD_NEW_SR = new SpatialReference({ wkid: 28992 });
 
@@ -300,6 +303,7 @@ export async function queryTrackCenterlines(routeGeometry, tracksLayer, bufferDi
     query.spatialRelationship = "intersects";
     query.outFields = ["*"];
     query.returnGeometry = true;
+    query.outSpatialReference = { wkid: 28992 }; // Return geometries in RD New for accurate intersection detection
 
     console.log(`   🔍 Query created with ${bufferDistance}m buffer`);
     
@@ -468,6 +472,7 @@ export async function performCompleteSpatialAnalysis(routeGeometry, layers) {
     tracks: { features: [], minDistance: null },
     earthing: { features: [], count: 0 },
     earthingDistances: [],
+    crossing: { crossesTrack: false, primaryAngle: null, angles: [] },
     timestamp: new Date().toISOString()
   };
 
@@ -498,6 +503,44 @@ export async function performCompleteSpatialAnalysis(routeGeometry, layers) {
         undefined,  // Use default buffer distance
         1.5         // Subtract 1.5m for track width adjustment
       );
+      
+      // Calculate crossing angles if tracks were found
+      if (results.tracks.features && results.tracks.features.length > 0) {
+        console.log(`🔄 Analyzing crossing angles...`);
+        try {
+          // Ensure route is in RD New coordinates for crossing analysis
+          const routeRd = await ensureRDNew(routeGeometry);
+          console.log(`   📐 Route SR: ${routeGeometry.spatialReference?.wkid} → ${routeRd.spatialReference?.wkid}`);
+          console.log(`   📏 Route type: ${routeRd.type}, paths: ${routeRd.paths?.length}, points in path[0]: ${routeRd.paths?.[0]?.length}`);
+          
+          // Track geometries are already in RD New (from query outSpatialReference)
+          const trackGeometries = results.tracks.features
+            .map(f => f.geometry)
+            .filter(g => g !== null && g !== undefined);
+          
+          console.log(`   📊 Analyzing ${trackGeometries.length} track geometries for crossings...`);
+          console.log(`   📍 First track SR: ${trackGeometries[0]?.spatialReference?.wkid || 'unknown'}`);
+          console.log(`   📍 First track type: ${trackGeometries[0]?.type}, paths: ${trackGeometries[0]?.paths?.length}`);
+          
+          // Analyze crossings using geometryUtils
+          const crossingAnalysis = analyzeCrossings(routeRd, trackGeometries);
+          
+          results.crossing = crossingAnalysis;
+          
+          if (crossingAnalysis.crossesTrack) {
+            console.log(`   ✅ Route crosses track(s): ${crossingAnalysis.angles.length} crossing(s) detected`);
+            console.log(`   📐 Primary crossing angle: ${crossingAnalysis.primaryAngle?.toFixed(1)}° (closest to perpendicular)`);
+            if (crossingAnalysis.angles.length > 1) {
+              console.log(`   📊 All crossing angles: ${crossingAnalysis.angles.map(a => a.toFixed(1) + '°').join(', ')}`);
+            }
+          } else {
+            console.log(`   ℹ️ Route does not cross tracks (runs parallel or no intersection)`);
+          }
+        } catch (error) {
+          console.error('❌ Crossing angle analysis failed:', error);
+        }
+      }
+      
     } catch (error) {
       console.error('❌ Tracks query failed:', error);
     }
@@ -531,6 +574,11 @@ export async function performCompleteSpatialAnalysis(routeGeometry, layers) {
   console.log(`   🏢 Technical rooms: ${results.technicalRooms.features.length} found, min distance: ${results.technicalRooms.minDistance?.toFixed(2) || 'N/A'}m`);
   console.log(`   🛤️ Tracks: ${results.tracks.features.length} found, min distance: ${results.tracks.minDistance?.toFixed(2) || 'N/A'}m`);
   console.log(`   ⚡ Earthing points: ${results.earthing.count} found`);
+  if (results.crossing.crossesTrack) {
+    console.log(`   🔀 Crossing angle: ${results.crossing.primaryAngle?.toFixed(1)}° (${results.crossing.angles.length} crossing point(s))`);
+  } else {
+    console.log(`   ↔️ No track crossings detected (parallel routing)`);
+  }
 
   return results;
 }

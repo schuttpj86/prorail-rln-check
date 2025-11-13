@@ -124,6 +124,32 @@
                 <span>Import</span>
               </button>
               
+              <!-- Import RD New Button -->
+              <button id="import-rdnew-btn"
+                onclick="openRdNewImporter()"
+                style="
+                padding: 8px 12px;
+                font-size: 0.8125rem; 
+                font-weight: 500;
+                color: #1a1a1a; 
+                background: white;
+                border: 1px solid #ff6600;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.15s ease;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-shrink: 0;
+                white-space: nowrap;
+              "
+              onmouseover="this.style.background='#fff8f0'; this.style.borderColor='#ff6600'; this.style.boxShadow='0 2px 4px rgba(255,102,0,0.2)';"
+              onmouseout="this.style.background='white'; this.style.borderColor='#ff6600'; this.style.boxShadow='none';"
+              title="Import Dutch cadastral data (EPSG:28992 / RD New coordinate system)">
+                <span style="font-size: 0.9rem;">🇳🇱</span>
+                <span>RD New</span>
+              </button>
+              
               <!-- Hidden file input -->
               <input type="file" 
                      id="import-file-input" 
@@ -306,17 +332,17 @@
         ">
           <!-- Header -->
           <h2 style="margin: 0 0 16px 0; color: #000000; font-size: 1.6rem; font-weight: 700; text-align: center;" data-i18n="welcomeTitle">
-            Welcome to ProRail High Voltage Connection Evaluator
+            Welcome to ProRail Cable Route Evaluator
           </h2>
           
           <div style="margin-bottom: 24px; line-height: 1.6; color: #333333;">
             <!-- Introduction -->
             <div style="margin: 0 0 20px 0; padding: 16px; background: #f5f5f5; border-radius: 6px;">
               <p style="margin: 0 0 10px 0; font-size: 0.9rem;" data-i18n="welcomeIntro">
-                In the Netherlands, ProRail Standard <strong>RLN00398 (Version 002, 01-12-2020)</strong> is used for the evaluation of electromagnetic interference between high-voltage connections and railway infrastructure.
+                In the Netherlands, ProRail Standard <strong>RLN00398 (Version 004, 01-06-2025)</strong> is used for the evaluation of electromagnetic interference between high-voltage connections and railway infrastructure.
               </p>
               <p style="margin: 0; font-size: 0.9rem;" data-i18n="welcomePurpose">
-                The initial part of this standard requires a combination of checks between the high-voltage connection and railway infrastructure. These checks determine whether more detailed electromagnetic compatibility (EMC) studies are required.
+                This standard includes a flow diagram (Figure 1) for assessing compliance. The tool performs automated checks following this flowchart to determine whether more detailed electromagnetic compatibility (EMC) studies are required.
               </p>
             </div>
             
@@ -334,7 +360,7 @@
             <ul style="margin: 0 0 20px 0; padding-left: 20px; font-size: 0.85rem; color: #555555; line-height: 1.8;">
               <li data-i18n="welcomeCapability1">✓ Draw routes directly on the map using the interactive interface</li>
               <li data-i18n="welcomeCapability2">✓ Import existing route geometries from CAD/GIS files (GeoJSON)</li>
-              <li data-i18n="welcomeCapability3">✓ Perform automated EMC compliance checks against RLN00398 criteria</li>
+              <li data-i18n="welcomeCapability3">✓ Perform automated EMC compliance checks against RLN00398-V004 criteria</li>
               <li data-i18n="welcomeCapability4">✓ Compare multiple route alternatives side-by-side</li>
               <li data-i18n="welcomeCapability5">✓ Generate professional reports for Request for Proposal (RFP) documentation</li>
               <li data-i18n="welcomeCapability6">✓ Document design details: cable type, layout, earthing points, joint locations</li>

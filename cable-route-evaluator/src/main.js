@@ -100,6 +100,8 @@ import {
   createRouteGeometry,
   calculateImportedRouteLength
 } from "./utils/routeImporter.js";
+import { RdNewImportModal } from "./utils/rdNewImportModal.js";
+import { addRouteDistanceMarkers } from "./utils/routeDistanceMarkers.js";
 import {
   generateRouteReport,
   generateComparativeReport,
@@ -2011,9 +2013,9 @@ async function addDistanceAnnotations(routeId, evaluationResult) {
     return;
   }
 
-  // Sample points along the route (every ~200m or at least 5 points)
+  // Sample points along the route (every ~100m or at least 10 points, max 100 samples)
   const routeLength = geometryEngine.geodesicLength(routeGeometry, "meters");
-  const numSamples = Math.max(5, Math.min(20, Math.floor(routeLength / 200)));
+  const numSamples = Math.max(10, Math.min(100, Math.floor(routeLength / 100)));
   
   // Extract all vertices from the route geometry
   const allPoints = [];
@@ -3257,6 +3259,63 @@ window.handleImportFile = async function(event) {
 };
 
 /**
+ * Open RD New import modal
+ */
+window.openRdNewImporter = function() {
+  console.log('🇳🇱 Opening RD New import modal...');
+  
+  const { view } = window.app;
+  
+  if (!view) {
+    alert('Map view not ready. Please wait a moment and try again.');
+    return;
+  }
+  
+  // Create and show modal
+  const modal = new RdNewImportModal(view);
+  window.rdNewImportModal = modal; // Store for inline event handlers
+  modal.show();
+  
+  console.log('✅ RD New import modal opened');
+};
+
+/**
+ * Handle RD New import completion event
+ */
+window.addEventListener('rdnew-import-complete', async (event) => {
+  const routes = event.detail.routes;
+  
+  console.log(`📥 RD New Import: Processing ${routes.length} route(s)`);
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const routeConfig of routes) {
+    try {
+      // Use the same import function as standard import
+      await createRouteFromImport(routeConfig);
+      successCount++;
+      
+      console.log(`✅ Created RD New route: ${routeConfig.name}`);
+    } catch (error) {
+      console.error(`❌ Failed to create route ${routeConfig.name}:`, error);
+      failCount++;
+    }
+  }
+  
+  // Show summary
+  let message = `RD New Import Complete!\n\n`;
+  message += `✅ Successfully imported: ${successCount} route(s)`;
+  if (failCount > 0) {
+    message += `\n❌ Failed: ${failCount} route(s)`;
+  }
+  
+  alert(message);
+  
+  console.log(`📊 RD New Import Summary: ${successCount} success, ${failCount} failed`);
+});
+
+/**
  * Create a route from imported data
  */
 async function createRouteFromImport(importedRoute) {
@@ -3277,7 +3336,10 @@ async function createRouteFromImport(importedRoute) {
   );
   
   // Determine route color - use imported color if provided, otherwise get next from palette
-  const routeColor = importedRoute.color || getNextRouteColor();
+  const colorObj = importedRoute.color ? 
+    (typeof importedRoute.color === 'string' ? { hex: importedRoute.color } : importedRoute.color) :
+    getNextRouteColor();
+  const routeColor = colorObj.hex || colorObj; // Extract hex string if object
   
   // Create the graphic
   const routeGraphic = new Graphic({
@@ -3316,10 +3378,28 @@ async function createRouteFromImport(importedRoute) {
       ...importedRoute.metadata
     },
     originalId: importedRoute.originalId, // Preserve if available
-    importInfo: importedRoute.importInfo // Preserve if available
+    importInfo: importedRoute.importInfo, // Preserve if available
+    distanceMarkers: [] // Initialize array for distance markers
   };
   
   drawingManager.routes.set(routeId, route);
+  
+  // Add distance markers (every 500m)
+  const { labelsLayer } = window.app;
+  if (labelsLayer && length >= 500) {
+    try {
+      const markers = addRouteDistanceMarkers(polyline, labelsLayer, 500, {
+        color: [0, 0, 0, 0.9],
+        backgroundColor: [255, 255, 255, 0.9],
+        fontSize: 10,
+        showKm: true
+      });
+      route.distanceMarkers = markers;
+      console.log(`  📏 Added ${markers.length} distance markers`);
+    } catch (error) {
+      console.warn('  ⚠️ Could not add distance markers:', error.message);
+    }
+  }
   
   // Add to UI
   const routeData = {

@@ -14,7 +14,8 @@ A professional web-based GIS application for evaluating electromagnetic compatib
 ### Key Features
 
 - ✅ **Interactive Route Drawing** - Create cable/overhead line routes directly on the map
-- ✅ **GeoJSON Import/Export** - Import routes from CAD systems, export for further analysis
+- ✅ **GeoJSON Import/Export** - Import routes from CAD/GIS systems (GeoJSON Feature/FeatureCollection), export for further analysis
+- ✅ **Multiple Import Formats** - Support for GeoJSON, simplified JSON, and native exports
 - ✅ **Automated EMC Checks** - Evaluate routes against RLN00398-V004 criteria
 - ✅ **V004 Flowchart Logic** - Sequential filtering through Steps A-F
 - ✅ **Bijlage 3 Reports** - Auto-generate ProRail-compliant EMC reports (100% template alignment) **NEW! ✨**

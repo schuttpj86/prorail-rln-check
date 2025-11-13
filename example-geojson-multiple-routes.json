@@ -1,0 +1,47 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [5.6662414719642715, 51.92637888663293],
+          [5.684265916544325, 51.92704050065143],
+          [5.7113025834144056, 51.927569784844174],
+          [5.731043641763987, 51.934449911357675]
+        ]
+      },
+      "properties": {
+        "name": "Route 1 - 110 kV Cable",
+        "voltageKv": 110,
+        "infrastructureType": "cable",
+        "faultClearingTimeMs": 120,
+        "hasDeltaOrMulticore": true
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [5.731043641763987, 51.934449911357675],
+          [5.750140969949997, 51.94079986115607],
+          [5.765432109876543, 51.94563210987654]
+        ]
+      },
+      "properties": {
+        "name": "Route 2 - 20 kV Cable",
+        "voltageKv": 20,
+        "infrastructureType": "cable",
+        "faultClearingTimeMs": 80
+      }
+    }
+  ]
+}
