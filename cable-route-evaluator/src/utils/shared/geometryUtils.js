@@ -528,6 +528,85 @@ export async function computeTechnicalRoomDistance(routeGeometry, routeRd, layer
   }
 }
 
+/**
+ * Determines if the HV route has a parallel run with the railway track
+ * within a critical distance zone.
+ * 
+ * DEFINITION (per RLN00398 v4 interpretation):
+ * A "parallel run" exists when the cable is inside the critical zone (700m or 11m)
+ * AND does NOT qualify as a proper crossing (angle between 80° and 100°).
+ * 
+ * LOGIC:
+ * - If cable is OUTSIDE zone → No parallel run
+ * - If cable crosses track at 80-100° → No parallel run (proper crossing)
+ * - If cable is INSIDE zone with angle < 80° or > 100° → Parallel run detected
+ * - If cable is INSIDE zone but doesn't cross → Parallel run detected
+ * 
+ * This function checks if ANY crossing within the zone has an angle outside
+ * the acceptable range (80-100°), OR if the cable enters the zone without
+ * crossing at all.
+ * 
+ * @param {Polyline} routeRd - HV cable route in RD New coordinates
+ * @param {Polyline|Polyline[]} trackGeometry - Railway track(s) in RD New coordinates
+ * @param {number} zoneDistance - Critical distance threshold (700m for >24kV, 11m for ≤24kV)
+ * @param {number} unused - Kept for backward compatibility (previously minParallelLength)
+ * @returns {boolean} - True if parallel run detected, false otherwise
+ */
+export function hasParallelRun(routeRd, trackGeometry, zoneDistance, unused = null) {
+  if (!routeRd || !trackGeometry) {
+    console.warn('hasParallelRun: Missing route or track geometry');
+    return false;
+  }
+
+  console.log(`      🔍 Checking for parallel run within ${zoneDistance}m zone...`);
+
+  // Ensure trackGeometry is an array
+  const tracks = Array.isArray(trackGeometry) ? trackGeometry : [trackGeometry];
+  
+  // Step 1: Check if route enters the zone at all
+  const zoneBuffer = geometryEngine.buffer(routeRd, zoneDistance, "meters");
+  let entersZone = false;
+  
+  for (const track of tracks) {
+    if (!track) continue;
+    const intersection = geometryEngine.intersect(zoneBuffer, track);
+    if (intersection && !intersection.isEmpty) {
+      entersZone = true;
+      break;
+    }
+  }
+  
+  if (!entersZone) {
+    console.log(`      ✅ Route stays outside ${zoneDistance}m zone - no parallel run`);
+    return false;
+  }
+  
+  console.log(`      📍 Route enters ${zoneDistance}m zone - checking crossings...`);
+  
+  // Step 2: Analyze crossings within the zone
+  const crossingAnalysis = analyzeCrossings(routeRd, tracks, 2);
+  
+  if (!crossingAnalysis.crossesTrack) {
+    // Route is in zone but doesn't cross track → parallel run
+    console.log(`      ⚠️ Parallel run detected: Route in zone without crossing track`);
+    return true;
+  }
+  
+  // Step 3: Check if ALL crossings have acceptable angles (80-100°)
+  const angles = crossingAnalysis.angles || [];
+  console.log(`      📐 Found ${angles.length} crossing(s) with angle(s): ${angles.map(a => a.toFixed(1) + '°').join(', ')}`);
+  
+  for (const angle of angles) {
+    if (angle < 80 || angle > 100) {
+      console.log(`      ⚠️ Parallel run detected: Crossing angle ${angle.toFixed(1)}° outside acceptable range (80-100°)`);
+      return true;
+    }
+  }
+  
+  console.log(`      ✅ All crossings within acceptable angle range (80-100°) - no parallel run`);
+  return false;
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -551,5 +630,8 @@ export const geometryUtils = {
   // Distance calculations
   fetchTrackGeometries,
   computeMinimumDistance,
-  computeTechnicalRoomDistance
+  computeTechnicalRoomDistance,
+  
+  // Parallel run detection
+  hasParallelRun
 };

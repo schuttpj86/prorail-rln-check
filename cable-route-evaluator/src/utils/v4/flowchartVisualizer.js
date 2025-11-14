@@ -244,38 +244,80 @@ function generateMermaidFlowchart(evaluationResult) {
  * Open flowchart visualizer modal with Mermaid rendering
  */
 export async function openFlowchartModal(routeName, evaluationResult) {
+  // Determine exit point
+  const results = evaluationResult?.flowchartResults || {};
+  let exitPoint = 'UNKNOWN';
+  let exitStatus = 'unknown';
+  let exitMessage = '';
+  let exitIcon = '❓';
+  
+  if (results.initial?.passes === true) {
+    exitPoint = 'STEP 0';
+    exitStatus = 'compliant';
+    exitMessage = 'Route voldoet al na initiële afstandscontrole';
+    exitIcon = '✅';
+  } else if (results.stepA?.passes === true) {
+    exitPoint = 'STEP A';
+    exitStatus = 'compliant';
+    exitMessage = 'Route voldoet na Check A (voorwaarden 1-3)';
+    exitIcon = '✅';
+  } else if (results.stepB?.passes === true) {
+    exitPoint = 'STEP B';
+    exitStatus = 'compliant';
+    exitMessage = 'Route voldoet na Check B (voorwaarden 4-7)';
+    exitIcon = '✅';
+  } else if (results.stepB?.passes === false) {
+    exitPoint = 'AFTER STEP B';
+    exitStatus = 'requires-study';
+    exitMessage = 'Gedetailleerde EMC-studie vereist (ga naar Check C & D)';
+    exitIcon = '⚠️';
+  }
+  
   const modal = document.createElement('div');
   modal.className = 'flowchart-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'flowchart-modal-title');
   modal.innerHTML = `
-    <div class="flowchart-modal-overlay" onclick="this.parentElement.remove()"></div>
+    <div class="flowchart-modal-overlay"></div>
     <div class="flowchart-modal-content">
       <div class="flowchart-modal-header">
-        <h2>🔄 Evaluatiestroom: ${escapeHtml(routeName)}</h2>
-        <button class="flowchart-modal-close" onclick="this.closest('.flowchart-modal').remove()">✕</button>
+        <h2 id="flowchart-modal-title">🔄 Evaluatiestroom: ${escapeHtml(routeName)}</h2>
+        <button class="flowchart-modal-close" aria-label="Sluit flowchart dialoog">✕</button>
       </div>
+      
+      <!-- EXIT POINT BANNER -->
+      <div class="flowchart-exit-banner exit-${exitStatus}" role="status" aria-live="polite">
+        <div class="exit-icon" aria-hidden="true">${exitIcon}</div>
+        <div class="exit-info">
+          <div class="exit-point">UITGANG: <strong>${exitPoint}</strong></div>
+          <div class="exit-message">${exitMessage}</div>
+        </div>
+      </div>
+      
       <div class="flowchart-modal-body">
-        <div class="flowchart-legend">
-          <div><span class="legend-box" style="background: #16a34a;"></span> Voldaan (pad gevolgd)</div>
-          <div><span class="legend-box" style="background: #dc2626;"></span> Niet voldaan (pad gevolgd)</div>
-          <div><span class="legend-box" style="background: #e5e7eb;"></span> Niet geëvalueerd</div>
+        <div class="flowchart-legend" role="note" aria-label="Legenda">
+          <div><span class="legend-box" style="background: #16a34a;" aria-hidden="true"></span> Voldaan (pad gevolgd)</div>
+          <div><span class="legend-box" style="background: #dc2626;" aria-hidden="true"></span> Niet voldaan (pad gevolgd)</div>
+          <div><span class="legend-box" style="background: #e5e7eb;" aria-hidden="true"></span> Niet geëvalueerd</div>
         </div>
-        <div class="flowchart-controls">
-          <button class="zoom-btn" onclick="window.zoomFlowchart(1.2)">🔍+ Zoom In</button>
-          <button class="zoom-btn" onclick="window.zoomFlowchart(0.8)">🔍− Zoom Out</button>
-          <button class="zoom-btn" onclick="window.resetFlowchartZoom()">↺ Reset</button>
-          <button class="zoom-btn" onclick="window.toggleFlowchartFullscreen()" id="flowchart-fullscreen-btn">⛶ Fullscreen</button>
+        <div class="flowchart-controls" role="toolbar" aria-label="Flowchart besturing">
+          <button class="zoom-btn zoom-in" aria-label="Zoom in">🔍+ Zoom In</button>
+          <button class="zoom-btn zoom-out" aria-label="Zoom uit">🔍− Zoom Out</button>
+          <button class="zoom-btn zoom-reset" aria-label="Reset zoom">↺ Reset</button>
+          <button class="zoom-btn fullscreen-toggle" aria-label="Schakel fullscreen">⛶ Fullscreen</button>
         </div>
-        <div class="flowchart-container" id="mermaid-flowchart">
+        <div class="flowchart-container" id="mermaid-flowchart" role="img" aria-label="RLN00398 evaluatie flowchart">
           <div class="loading">Flowchart wordt geladen...</div>
         </div>
-        <div class="flowchart-footer">
+        <div class="flowchart-footer" role="note">
           <p><strong>Let op:</strong> Dit hulpmiddel evalueert alleen de <em>Initiële check</em>, <em>Check A</em> (1-3), en <em>Check B</em> (4-7).</p>
           <p>Checks C en D vereisen een gedetailleerde studie en vallen buiten de scope van deze tool.</p>
         </div>
       </div>
-      <div class="resize-handle resize-handle-right"></div>
-      <div class="resize-handle resize-handle-bottom"></div>
-      <div class="resize-handle resize-handle-corner"></div>
+      <div class="resize-handle resize-handle-right" aria-hidden="true"></div>
+      <div class="resize-handle resize-handle-bottom" aria-hidden="true"></div>
+      <div class="resize-handle resize-handle-corner" aria-hidden="true"></div>
     </div>
   `;
   
@@ -337,6 +379,71 @@ export async function openFlowchartModal(routeName, evaluationResult) {
       font-size: 1.25rem;
       color: #1f2937;
       pointer-events: none;
+    }
+    
+    /* EXIT POINT BANNER */
+    .flowchart-exit-banner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      border-bottom: 3px solid;
+      flex-shrink: 0;
+      animation: slideDown 0.3s ease-out;
+    }
+    
+    @keyframes slideDown {
+      from {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .flowchart-exit-banner.exit-compliant {
+      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+      border-color: #16a34a;
+    }
+    
+    .flowchart-exit-banner.exit-requires-study {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-color: #ca8a04;
+    }
+    
+    .flowchart-exit-banner.exit-unknown {
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      border-color: #9ca3af;
+    }
+    
+    .exit-icon {
+      font-size: 3rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    
+    .exit-info {
+      flex: 1;
+    }
+    
+    .exit-point {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+    
+    .exit-point strong {
+      font-size: 1.3rem;
+      color: #000;
+    }
+    
+    .exit-message {
+      font-size: 0.95rem;
+      color: #4b5563;
     }
     
     .flowchart-modal-close {
@@ -541,13 +648,87 @@ export async function openFlowchartModal(routeName, evaluationResult) {
   document.head.appendChild(style);
   document.body.appendChild(modal);
   
-  // Add drag and resize functionality
+  // Get references to interactive elements
   const modalContent = modal.querySelector('.flowchart-modal-content');
+  const overlay = modal.querySelector('.flowchart-modal-overlay');
+  const closeButton = modal.querySelector('.flowchart-modal-close');
   const header = modal.querySelector('.flowchart-modal-header');
+  const zoomInBtn = modal.querySelector('.zoom-in');
+  const zoomOutBtn = modal.querySelector('.zoom-out');
+  const resetBtn = modal.querySelector('.zoom-reset');
+  const fullscreenBtn = modal.querySelector('.fullscreen-toggle');
+  const container = modal.querySelector('#mermaid-flowchart');
   const resizeRight = modal.querySelector('.resize-handle-right');
   const resizeBottom = modal.querySelector('.resize-handle-bottom');
   const resizeCorner = modal.querySelector('.resize-handle-corner');
   
+  // Focus trap - get all focusable elements
+  const getFocusableElements = () => {
+    return modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  };
+  
+  // Store the element that had focus before opening modal
+  const previouslyFocusedElement = document.activeElement;
+  
+  // Close modal function
+  const closeModal = () => {
+    modal.remove();
+    // Restore focus to previously focused element
+    if (previouslyFocusedElement) {
+      previouslyFocusedElement.focus();
+    }
+  };
+  
+  // Close on overlay click
+  overlay.addEventListener('click', closeModal);
+  
+  // Close on close button click
+  closeButton.addEventListener('click', closeModal);
+  
+  // Close on Escape key
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  };
+  modal.addEventListener('keydown', handleEscape);
+  
+  // Focus trap - handle Tab key
+  const handleTab = (e) => {
+    if (e.key !== 'Tab') return;
+    
+    const focusableElements = getFocusableElements();
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    
+    if (e.shiftKey) {
+      // Shift + Tab
+      if (document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      // Tab
+      if (document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    }
+  };
+  modal.addEventListener('keydown', handleTab);
+  
+  // Set initial focus to close button
+  setTimeout(() => {
+    closeButton.focus();
+  }, 100);
+  
+  // Zoom and fullscreen state
+  let scale = 1;
+  let translateX = 0;
+  let translateY = 0;
+  let isFullscreen = true;
+  
+  // Drag and resize state
   let isDragging = false;
   let isResizing = false;
   let resizeDirection = null;
@@ -555,12 +736,9 @@ export async function openFlowchartModal(routeName, evaluationResult) {
   let startY = 0;
   let startWidth = 0;
   let startHeight = 0;
-  let startLeft = 0;
-  let startTop = 0;
-  let isFullscreen = true;
   
-  // Fullscreen toggle
-  window.toggleFlowchartFullscreen = () => {
+  // Fullscreen toggle function (local, not global)
+  const toggleFullscreen = () => {
     if (isFullscreen) {
       // Exit fullscreen - set to 90% centered
       modalContent.style.width = '90vw';
@@ -570,7 +748,7 @@ export async function openFlowchartModal(routeName, evaluationResult) {
       modalContent.style.right = 'auto';
       modalContent.style.bottom = 'auto';
       isFullscreen = false;
-      document.getElementById('flowchart-fullscreen-btn').textContent = '⛶ Fullscreen';
+      fullscreenBtn.textContent = '⛶ Fullscreen';
     } else {
       // Enter fullscreen
       modalContent.style.width = '100%';
@@ -580,9 +758,12 @@ export async function openFlowchartModal(routeName, evaluationResult) {
       modalContent.style.right = '0';
       modalContent.style.bottom = '0';
       isFullscreen = true;
-      document.getElementById('flowchart-fullscreen-btn').textContent = '⛶ Exit Fullscreen';
+      fullscreenBtn.textContent = '⛶ Exit Fullscreen';
     }
   };
+  
+  // Attach fullscreen button event
+  fullscreenBtn.addEventListener('click', toggleFullscreen);
   
   // Header drag to move
   header.addEventListener('mousedown', (e) => {
@@ -671,7 +852,6 @@ export async function openFlowchartModal(routeName, evaluationResult) {
   // Generate and render Mermaid diagram
   try {
     const mermaidDef = generateMermaidFlowchart(evaluationResult);
-    const container = document.getElementById('mermaid-flowchart');
     
     const { svg } = await mermaid.render('flowchart-svg', mermaidDef);
     container.innerHTML = svg;
@@ -679,46 +859,48 @@ export async function openFlowchartModal(routeName, evaluationResult) {
     // Add zoom and pan functionality
     const svgElement = container.querySelector('svg');
     if (svgElement) {
-      let scale = 1;
-      let isPanning = false;
-      let startX = 0;
-      let startY = 0;
-      let translateX = 0;
-      let translateY = 0;
-      
-      // Set up zoom functions
-      window.zoomFlowchart = (factor) => {
+      // Zoom functions (local, not global)
+      const zoomFlowchart = (factor) => {
         scale *= factor;
         scale = Math.max(0.3, Math.min(scale, 3)); // Limit zoom between 30% and 300%
         svgElement.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
       };
       
-      window.resetFlowchartZoom = () => {
+      const resetZoom = () => {
         scale = 1;
         translateX = 0;
         translateY = 0;
         svgElement.style.transform = `translate(0px, 0px) scale(1)`;
       };
       
+      // Attach zoom button events
+      zoomInBtn.addEventListener('click', () => zoomFlowchart(1.2));
+      zoomOutBtn.addEventListener('click', () => zoomFlowchart(0.8));
+      resetBtn.addEventListener('click', resetZoom);
+      
       // Mouse wheel zoom
       container.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        window.zoomFlowchart(delta);
+        zoomFlowchart(delta);
       });
       
       // Pan functionality
+      let isPanning = false;
+      let panStartX = 0;
+      let panStartY = 0;
+      
       container.addEventListener('mousedown', (e) => {
         isPanning = true;
-        startX = e.clientX - translateX;
-        startY = e.clientY - translateY;
+        panStartX = e.clientX - translateX;
+        panStartY = e.clientY - translateY;
         container.style.cursor = 'grabbing';
       });
       
       container.addEventListener('mousemove', (e) => {
         if (!isPanning) return;
-        translateX = e.clientX - startX;
-        translateY = e.clientY - startY;
+        translateX = e.clientX - panStartX;
+        translateY = e.clientY - panStartY;
         svgElement.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
       });
       
